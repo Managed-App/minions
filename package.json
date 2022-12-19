@@ -11,5 +11,8 @@
     "url": "https://github.com//Managed-App/minions.git"
   },
   "author": "simon@managedapp.com.au",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "@slack/bolt": "^3.12.2"
+  }
 }
