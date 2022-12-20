@@ -22,12 +22,6 @@ process in a Slackbot
 /image vnnn deploy prod
 ```
 
-### release PRs on the managed repo.
-```
-/release branchname uat
-/release branchname prod
-```
-
 ### allow developers to check currently deployed version for an environment using SlackBot.
 ```
 /env uat
