@@ -9,7 +9,7 @@ function listImages() {
             GEM_HOME: process.env.GEM_HOME,
         }
     });
-    console.log(resp.toString("utf8"));
+    return resp.toString("utf8");
 }
 
 module.exports = { listImages } ;

@@ -12,7 +12,7 @@ const app = new App({
     port: process.env.PORT || 3000
 });
 
-app.message('hello', async ({ message, say }) => {
+app.message('minions', async ({ message, say }) => {
     // say() sends a message to the channel where the event was triggered
     await say({
         blocks: [
@@ -20,7 +20,7 @@ app.message('hello', async ({ message, say }) => {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": `Hey there <@${message.user}>!`
+                    "text": `Terima Kasih <@${message.user}>!`
                 },
                 "accessory": {
                     "type": "button",
@@ -37,9 +37,11 @@ app.message('hello', async ({ message, say }) => {
 });
 
 app.action('button_click', async ({ body, ack, say }) => {
-    listImages();
+    const resp = listImages();
     await ack();
-    await say("done");
+    await say("Images");
+    await say("------");
+    await say(resp);
 });
 
 
