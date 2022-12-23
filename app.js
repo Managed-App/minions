@@ -1,4 +1,5 @@
 const {App} = require('@slack/bolt');
+const {listImages} = require ('./commands.js');
 
 // Initializes your app with your bot token and signing secret
 const app = new App({
@@ -25,7 +26,7 @@ app.message('hello', async ({ message, say }) => {
                     "type": "button",
                     "text": {
                         "type": "plain_text",
-                        "text": "Click Me"
+                        "text": "Images"
                     },
                     "action_id": "button_click"
                 }
@@ -36,10 +37,11 @@ app.message('hello', async ({ message, say }) => {
 });
 
 app.action('button_click', async ({ body, ack, say }) => {
-    // Acknowledge the action
+    listImages();
     await ack();
-    await say(`<@${body.user.id}> clicked the button`);
+    await say("done");
 });
+
 
 
 (async () => {
