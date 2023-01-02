@@ -86,8 +86,8 @@ async function tag(txt, ack, respond) {
 
 async function help(ack, respond) {
     const commands = [
-        "/minions tag vnnn          create github artefacts, docker image with tag vnnn on ECR.",
-        "/minions images            shows managed's successfully built docker images on ECR.",
+        "/minions tag vnnn          create docker image with tag vnnn on ECR.",
+        "/minions images            list docker images on ECR.",
         "/minions images vnnn       filter for a specific image on ECR",
         "/minions images latest     show the latest image on ECR",
         "/minions help              show this message."

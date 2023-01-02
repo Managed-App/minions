@@ -6,7 +6,7 @@ Deployments are difficult to achieve because access is limited to workstations w
 process in a Slackbot
 
 ## Feature Ideas
-### build/tag Github repo master branch and trigger image build.
+### build/tag Github repo master branch and trigger image build on ECR.
 ```
 /minions tag vnnn
 ```
