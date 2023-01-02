@@ -12,13 +12,14 @@ process in a Slackbot
 ```
 
 ### list previously built images
-`/minions images`
-`/minions images vnnn`
-`/minions images latest`
+```
+/minions images
+/minions images vnnn
+/minions images latest
+```
 
 ### deploy release to specified environment.
 ```
-### build/tag Github repo master branch to trigger image build. 
 /minions deploy vnnn uat
 /minions deploy vnnn prod
 ```
