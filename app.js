@@ -1,6 +1,7 @@
 const {App} = require('@slack/bolt');
-const {listImages} = require('./commands.js');
+const {listImages, createGithubArtefacts} = require('./commands.js');
 const {randomSentence} = require("./minions");
+const {wrapMarkdownCode} = require("./util");
 
 // Initializes your app with your bot token and signing secret
 const app = new App({
@@ -58,7 +59,7 @@ async function images(txt, ack, respond) {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": `${wrapCode(imgs.join("\n"))}`
+                    "text": `${wrapMarkdownCode(imgs.join("\n"))}`
                 },
             },
         ]
@@ -66,16 +67,22 @@ async function images(txt, ack, respond) {
 }
 
 async function tag(txt, ack, respond) {
-    await ack();
-    await respond(`image tagged ${txt.split(" ")[1]}`);
+    const version = txt.split(" ")[1];
+    if (version && version.length >0) {
+        await createGithubArtefacts(version);
+        await ack();
+        await respond(`master revision tagged and release created on github ${txt.split(" ")[1]}`);
+    } else {
+        await help();
+    }
 }
 
 async function help(ack, respond) {
     const commands = [
-        "/minions image vnnn          create a new docker image with tag vnnn.",
-        "/minions images              shows managed's successfully built docker images.",
-        "/minions images vnnn         filter for a specific image",
-        "/minions help                show this message."
+        "/minions tag vnnn          create github artefacts and a new docker image with tag vnnn.",
+        "/minions images            shows managed's successfully built docker images.",
+        "/minions images vnnn       filter for a specific image",
+        "/minions help              show this message."
     ];
     
     await ack();
@@ -92,15 +99,11 @@ async function help(ack, respond) {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "```"+commands.join("\n")+"```"
+                    "text": wrapMarkdownCode(commands.join("\n")),
                 },
             },
         ]
     });
-}
-
-function wrapCode(raw) {
-    return "```" + raw + "```";
 }
 
 (async () => {

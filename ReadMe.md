@@ -14,7 +14,6 @@ process in a Slackbot
 ### list previously built images
 `/minions images`
 `/minions images vnnn`
-`/minions image vnnn`
 
 ### deploy release to specified environment.
 ```
