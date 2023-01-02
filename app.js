@@ -79,7 +79,7 @@ async function tag(txt, ack, respond) {
 
 async function help(ack, respond) {
     const commands = [
-        "/minions tag vnnn          create github artefacts and a new docker image with tag vnnn.",
+        "/minions tag vnnn          create github artefacts, docker imagewith tag vnnn.",
         "/minions images            shows managed's successfully built docker images.",
         "/minions images vnnn       filter for a specific image",
         "/minions help              show this message."
