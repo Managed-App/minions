@@ -13,9 +13,24 @@ const app = new App({
     port: process.env.PORT || 3000
 });
 
-app.message('minions', async ({message, say}) => {
-    // say() sends a message to the channel where the event was triggered
-    await say({
+app.command('/minions', async ({ command, ack, respond }) => {
+    switch (command.text) {
+        case "images":
+            await images(ack, respond);
+            break;
+        case "help":
+            await help(ack, respond);
+            break;
+        default:
+            await help(ack, respond);
+            break;
+    }// Acknowledge command request
+});
+
+async function images(ack, respond) {
+    var img = listImages();
+    await ack();
+    await respond({
         blocks: [
             {
                 "type": "section",
@@ -28,12 +43,38 @@ app.message('minions', async ({message, say}) => {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": `${listImages()}`
+                    "text": `${img}`
                 },
             },
         ]
     });
-});
+}
+
+async function help(ack, respond) {
+    const commands = [
+        "/minions images              shows managed's successfully built docker images.",
+        "/minions help                show this message."
+    ];
+    await ack();
+    await respond({
+        blocks: [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": `${randomSentence()}`
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "```"+commands.join("\n")+"```"
+                },
+            },
+        ]
+    });
+}
 
 (async () => {
     // Start your app
