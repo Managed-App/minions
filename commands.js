@@ -1,15 +1,24 @@
-const { execSync } = require("child_process");
+const {execSync} = require("child_process");
 
 function listImages() {
-    const resp = execSync("cd " + process.env.MANAGED_HOME+" && bin/skipper images", {
+    const resp = execSync("cd " + process.env.MANAGED_HOME + " && bin/skipper images", {
         env: {
             ...process.env,
-            PATH: process.env.RUBY_PATH+":$PATH",
+            PATH: process.env.RUBY_PATH + ":$PATH",
             GEM_PATH: process.env.GEM_PATH,
             GEM_HOME: process.env.GEM_HOME,
         }
     });
-    return resp.toString("utf8");
+    return wrapCode(stripAnsi(resp.toString("utf8")));
 }
 
-module.exports = { listImages } ;
+function stripAnsi(raw) {
+    return raw.replace(
+        /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
+}
+
+function wrapCode(raw) {
+    return "```" + raw + "```";
+}
+
+module.exports = {listImages};

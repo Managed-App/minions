@@ -1,5 +1,6 @@
 const {App} = require('@slack/bolt');
-const {listImages} = require ('./commands.js');
+const {listImages} = require('./commands.js');
+const {randomSentence} = require("./minions");
 
 // Initializes your app with your bot token and signing secret
 const app = new App({
@@ -12,7 +13,7 @@ const app = new App({
     port: process.env.PORT || 3000
 });
 
-app.message('minions', async ({ message, say }) => {
+app.message('minions', async ({message, say}) => {
     // say() sends a message to the channel where the event was triggered
     await say({
         blocks: [
@@ -20,31 +21,19 @@ app.message('minions', async ({ message, say }) => {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": `Terima Kasih <@${message.user}>!`
+                    "text": `${randomSentence()}`
                 },
-                "accessory": {
-                    "type": "button",
-                    "text": {
-                        "type": "plain_text",
-                        "text": "Images"
-                    },
-                    "action_id": "button_click"
-                }
-            }
-        ],
-        text: `Hey there <@${message.user}>!`
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": `${listImages()}`
+                },
+            },
+        ]
     });
 });
-
-app.action('button_click', async ({ body, ack, say }) => {
-    const resp = listImages();
-    await ack();
-    await say("Images");
-    await say("------");
-    await say(resp);
-});
-
-
 
 (async () => {
     // Start your app
