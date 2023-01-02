@@ -39,7 +39,9 @@ async function images(txt, ack, respond) {
     var imgs = listImages();
 
     var version = txt.split(" ")[1];
-    if (version && version.length>0) {
+    if (version && version==="latest") {
+        imgs = [imgs[0]];
+    } else if (version && version.length>0) {
         imgs = imgs.filter(img => img.includes(version));
     }
     if (imgs.length==0) {
@@ -84,9 +86,10 @@ async function tag(txt, ack, respond) {
 
 async function help(ack, respond) {
     const commands = [
-        "/minions tag vnnn          create github artefacts, docker image with tag vnnn.",
-        "/minions images            shows managed's successfully built docker images.",
-        "/minions images vnnn       filter for a specific image",
+        "/minions tag vnnn          create github artefacts, docker image with tag vnnn on ECR.",
+        "/minions images            shows managed's successfully built docker images on ECR.",
+        "/minions images vnnn       filter for a specific image on ECR",
+        "/minions images latest     show the latest image on ECR",
         "/minions help              show this message."
     ];
     
