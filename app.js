@@ -14,9 +14,18 @@ const app = new App({
 });
 
 app.command('/minions', async ({ command, ack, respond }) => {
-    switch (command.text) {
+    var stem = command.text.split(" ")[0];
+    switch (stem) {
         case "images":
             await images(ack, respond);
+            break;
+        case "image":
+            var cmdlen = command.text.split(" ").length;
+            if (cmdlen == 2) {
+                await image(command.text, ack, respond);
+            } else {
+                await help(ack, respond);
+            }
             break;
         case "help":
             await help(ack, respond);
@@ -28,7 +37,7 @@ app.command('/minions', async ({ command, ack, respond }) => {
 });
 
 async function images(ack, respond) {
-    var img = listImages();
+    var imgs = listImages();
     await ack();
     await respond({
         blocks: [
@@ -43,7 +52,33 @@ async function images(ack, respond) {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": `${img}`
+                    "text": `${wrapCode(imgs)}`
+                },
+            },
+        ]
+    });
+}
+
+async function image(txt, ack, respond) {
+    var version = txt.split(" ")[1];
+
+    var imgs = listImages().split("\n");
+    imgs = imgs.filter(img => img.includes(version));
+
+    await respond({
+        blocks: [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": `${randomSentence()}`
+                },
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": `${wrapCode(imgs.join("\n"))}`
                 },
             },
         ]
@@ -53,8 +88,10 @@ async function images(ack, respond) {
 async function help(ack, respond) {
     const commands = [
         "/minions images              shows managed's successfully built docker images.",
+        "/minions image vnnn          filter for a specific image",
         "/minions help                show this message."
     ];
+    
     await ack();
     await respond({
         blocks: [
@@ -74,6 +111,10 @@ async function help(ack, respond) {
             },
         ]
     });
+}
+
+function wrapCode(raw) {
+    return "```" + raw + "```";
 }
 
 (async () => {

@@ -9,16 +9,12 @@ function listImages() {
             GEM_HOME: process.env.GEM_HOME,
         }
     });
-    return wrapCode(stripAnsi(resp.toString("utf8")));
+    return stripAnsi(resp.toString("utf8"));
 }
 
 function stripAnsi(raw) {
     return raw.replace(
         /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
-}
-
-function wrapCode(raw) {
-    return "```" + raw + "```";
 }
 
 module.exports = {listImages};
