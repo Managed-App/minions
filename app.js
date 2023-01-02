@@ -17,15 +17,13 @@ app.command('/minions', async ({ command, ack, respond }) => {
     var stem = command.text.split(" ")[0];
     switch (stem) {
         case "images":
-            await images(ack, respond);
+            await images(command.text, ack, respond);
             break;
         case "image":
-            var cmdlen = command.text.split(" ").length;
-            if (cmdlen == 2) {
-                await image(command.text, ack, respond);
-            } else {
-                await help(ack, respond);
-            }
+            await images(command.text, ack, respond);
+            break
+        case "tag":
+            await tag(command.text, ack, respond);
             break;
         case "help":
             await help(ack, respond);
@@ -36,35 +34,17 @@ app.command('/minions', async ({ command, ack, respond }) => {
     }// Acknowledge command request
 });
 
-async function images(ack, respond) {
-    var imgs = listImages();
-    await ack();
-    await respond({
-        blocks: [
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": `${randomSentence()}`
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": `${wrapCode(imgs)}`
-                },
-            },
-        ]
-    });
-}
-
-async function image(txt, ack, respond) {
-    var version = txt.split(" ")[1];
-
+async function images(txt, ack, respond) {
     var imgs = listImages().split("\n");
-    imgs = imgs.filter(img => img.includes(version));
 
+    var version = txt.split(" ")[1];
+    if (version && version.length>0) {
+        imgs = imgs.filter(img => img.includes(version));
+    }
+    if (imgs.length==0) {
+        imgs = [`no images found for '${version}'`]
+    }
+    await ack();
     await respond({
         blocks: [
             {
@@ -85,10 +65,16 @@ async function image(txt, ack, respond) {
     });
 }
 
+async function tag(txt, ack, respond) {
+    await ack();
+    await respond(`image tagged ${txt.split(" ")[1]}`);
+}
+
 async function help(ack, respond) {
     const commands = [
+        "/minions image vnnn          create a new docker image with tag vnnn.",
         "/minions images              shows managed's successfully built docker images.",
-        "/minions image vnnn          filter for a specific image",
+        "/minions images vnnn         filter for a specific image",
         "/minions help                show this message."
     ];
     

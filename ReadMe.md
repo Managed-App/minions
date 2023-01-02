@@ -6,18 +6,21 @@ Deployments are difficult to achieve because access is limited to workstations w
 process in a Slackbot
 
 ## Feature Ideas
-
-### build/tag Github repo master branch to trigger image build. 
-`/minions image create`
+### build/tag Github repo master branch and trigger image build.
+```
+/minions tag vnnn
+```
 
 ### list previously built images
 `/minions images`
+`/minions images vnnn`
 `/minions image vnnn`
 
 ### deploy release to specified environment.
 ```
-/minions image vnnn deploy uat
-/minions image vnnn deploy prod
+### build/tag Github repo master branch to trigger image build. 
+/minions deploy vnnn uat
+/minions deploy vnnn prod
 ```
 
 ### allow developers to check currently deployed version for an environment using SlackBot.
