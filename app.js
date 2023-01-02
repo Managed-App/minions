@@ -36,7 +36,7 @@ app.command('/minions', async ({ command, ack, respond }) => {
 });
 
 async function images(txt, ack, respond) {
-    var imgs = listImages().split("\n");
+    var imgs = listImages();
 
     var version = txt.split(" ")[1];
     if (version && version.length>0) {
@@ -69,9 +69,14 @@ async function images(txt, ack, respond) {
 async function tag(txt, ack, respond) {
     const version = txt.split(" ")[1];
     if (version && version.length >0) {
-        await createGithubArtefacts(version);
-        await ack();
-        await respond(`master revision tagged and release created on github ${txt.split(" ")[1]}`);
+        const gh = await createGithubArtefacts(version);
+        if (gh) {
+            await ack();
+            await respond(wrapMarkdownCode(`master revision tagged and release created on github ${txt.split(" ")[1]}`));
+        } else {
+            await respond(wrapMarkdownCode(`command failed`));
+        }
+
     } else {
         await help();
     }
@@ -79,7 +84,7 @@ async function tag(txt, ack, respond) {
 
 async function help(ack, respond) {
     const commands = [
-        "/minions tag vnnn          create github artefacts, docker imagewith tag vnnn.",
+        "/minions tag vnnn          create github artefacts, docker image with tag vnnn.",
         "/minions images            shows managed's successfully built docker images.",
         "/minions images vnnn       filter for a specific image",
         "/minions help              show this message."

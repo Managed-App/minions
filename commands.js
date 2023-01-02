@@ -11,7 +11,15 @@ function listImages() {
             GEM_HOME: process.env.GEM_HOME,
         }
     });
-    return stripAnsi(resp.toString("utf8"));
+    return stripAnsi(resp.toString("utf8")).split("\n").sort(
+        (a,b)=>{
+            if (a.split(" ")[1] > b.split(" ")[1]) {
+                return -11;
+            } else {
+                return 1;
+            }
+        }
+    );
 }
 
 async function createGithubArtefacts(tag) {
@@ -33,7 +41,7 @@ async function createGithubArtefacts(tag) {
         generate_release_notes: true,
     });
 
-    console.log(resp)
+    return (resp.status && resp.status == 201);
 }
 
 module.exports = {listImages, createGithubArtefacts};
