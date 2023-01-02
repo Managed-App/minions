@@ -12,6 +12,7 @@ process in a Slackbot
 
 ### list previously built images
 `/minions images`
+`/minions image vnnn`
 
 ### deploy release to specified environment.
 ```
