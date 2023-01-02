@@ -2,6 +2,7 @@ const {App} = require('@slack/bolt');
 const {listImages, createGithubArtefacts} = require('./commands.js');
 const {randomSentence} = require("./minions");
 const {wrapMarkdownCode} = require("./util");
+const {showEnv} = require("./commands");
 
 // Initializes your app with your bot token and signing secret
 const app = new App({
@@ -17,6 +18,9 @@ const app = new App({
 app.command('/minions', async ({ command, ack, respond }) => {
     var stem = command.text.split(" ")[0];
     switch (stem) {
+        case "env":
+            await env(command.text, ack, respond);
+            break;
         case "images":
             await images(command.text, ack, respond);
             break;
@@ -34,6 +38,37 @@ app.command('/minions', async ({ command, ack, respond }) => {
             break;
     }// Acknowledge command request
 });
+
+async function env(txt, ack, respond) {
+    var target = txt.split(" ")[1];
+
+    if (target && (target === "uat" || target === "prod")) {
+        var result = await showEnv(target);
+        await ack();
+        await respond({
+            blocks: [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": `${randomSentence()}`
+                    },
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": `${wrapMarkdownCode(result)}`
+                    },
+                },
+            ]
+        });
+
+    } else {
+        await respond("command failed");
+    }
+
+}
 
 async function images(txt, ack, respond) {
     var imgs = listImages();
@@ -86,6 +121,9 @@ async function tag(txt, ack, respond) {
 
 async function help(ack, respond) {
     const commands = [
+        "/minions env uat           show deployed versions on uat env on EKS.",
+        "/minions env prod          show deployed versions on prod env on EKS.",
+        "/minions tag vnnn          create docker image with tag vnnn on ECR.",
         "/minions tag vnnn          create docker image with tag vnnn on ECR.",
         "/minions images            list docker images on ECR.",
         "/minions images vnnn       filter for a specific image on ECR",

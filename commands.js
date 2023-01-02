@@ -44,4 +44,16 @@ async function createGithubArtefacts(tag) {
     return (resp.status && resp.status == 201);
 }
 
-module.exports = {listImages, createGithubArtefacts};
+async function showEnv(target) {
+    const resp = execSync("cd " + process.env.MANAGED_HOME + ` && bin/skipper list --group managed-${target}`, {
+        env: {
+            ...process.env,
+            PATH: process.env.RUBY_PATH + ":$PATH",
+            GEM_PATH: process.env.GEM_PATH,
+            GEM_HOME: process.env.GEM_HOME,
+        }
+    });
+    return stripAnsi(resp.toString("utf8"));
+}
+
+module.exports = {listImages, showEnv, createGithubArtefacts};
