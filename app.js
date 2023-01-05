@@ -1,10 +1,11 @@
 const {App, LogLevel} = require('@slack/bolt');
-const {listImages, createGithubArtefacts} = require('./commands.js');
-const {randomSentence} = require("./minions");
-const {wrapMarkdownCode} = require("./util");
-const {showEnv} = require("./commands");
+const {Tag} = require('./tag.js');
+const {Env} = require('./env.js');
+const {Images} = require('./images.js');
+const {Help} = require('./help.js');
 
 const app = new App({
+    name: "Minions",
     token: process.env.SLACK_BOT_TOKEN,
     signingSecret: process.env.SLACK_SIGNING_SECRET,
     socketMode: true,
@@ -19,144 +20,25 @@ app.command('/minions', async ({ command, ack, respond }) => {
     var stem = command.text.split(" ")[0];
     switch (stem) {
         case "env":
-            await env(command, ack, respond, app.logger);
+            await Env(command, ack, respond, app.logger);
             break;
         case "images":
-            await images(command, ack, respond, app.logger);
+            await Images(command, ack, respond, app.logger);
             break;
         case "image":
-            await images(command, ack, respond, app.logger);
+            await Images(command, ack, respond, app.logger);
             break
         case "tag":
-            await tag(command, ack, respond, app.logger);
+            await Tag(command, ack, respond, app.logger);
             break;
         case "help":
-            await help(command, ack, respond, app.logger);
+            await Help(command, ack, respond, app.logger);
             break;
         default:
-            await help(command, ack, respond, app.logger);
+            await Help(command, ack, respond, app.logger);
             break;
     }// Acknowledge command request
 });
-
-async function env(command, ack, respond, log) {
-    var target = command.text.split(" ")[1];
-    await ack();
-
-    if (target && (target === "uat" || target === "prod")) {
-        var result = await showEnv(target, log);
-        await respond({
-            blocks: [
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": `${randomSentence()}`
-                    },
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": `${wrapMarkdownCode(result)}`
-                    },
-                },
-            ]
-        });
-        log.info(`'/minions ${command.text}' command executed for ${command.user_name} in channel ${command.channel_name}`);
-    } else {
-
-        log.warn(`'/minions ${command.text}' command failed for ${command.user_name} in channel ${command.channel_name}`);
-        await respond(`'/minions ${command.text}' invalid, try 'uat' | 'prod' for env`);
-    }
-
-}
-
-async function images(command, ack, respond, log) {
-    var imgs = listImages(log);
-
-    var version = command.text.split(" ")[1];
-    if (version && version==="latest") {
-        imgs = [imgs[0]];
-    } else if (version && version.length>0) {
-        imgs = imgs.filter(img => img.includes(version));
-    }
-    if (imgs.length==0) {
-        imgs = [`no images found for '${version}'`]
-    }
-    await ack();
-    await respond({
-        blocks: [
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": `${randomSentence()}`
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": `${wrapMarkdownCode(imgs.join("\n"))}`
-                },
-            },
-        ]
-    });
-    log.info(`'/minions ${command.text}' command executed for ${command.user_name} in channel ${command.channel_name}`);
-}
-
-async function tag(command, ack, respond, log) {
-    const version = command.text.split(" ")[1];
-    if (version && version.length >0) {
-        const gh = await createGithubArtefacts(app, version, log);
-        if (gh) {
-            await ack();
-            await respond(wrapMarkdownCode(`master revision tagged and release created on github ${txt.split(" ")[1]}`));
-            log.info(`'/minions ${command.text}' command executed for ${command.user_name} in channel ${command.channel_name}`);
-        } else {
-            await respond(wrapMarkdownCode(`command failed`));
-            log.warn(`'/minions ${command.text}' command failed for ${command.user_name} in channel ${command.channel_name}`);
-        }
-
-    } else {
-        await help(command, ack, respond, log);
-    }
-}
-
-async function help(command, ack, respond, log) {
-    const commands = [
-        "/minions env uat           show deployed versions on uat env on EKS.",
-        "/minions env prod          show deployed versions on prod env on EKS.",
-        "/minions tag vnnn          create docker image with tag vnnn on ECR.",
-        "/minions tag vnnn          create docker image with tag vnnn on ECR.",
-        "/minions images            list docker images on ECR.",
-        "/minions images vnnn       filter for a specific image on ECR",
-        "/minions images latest     show the latest image on ECR",
-        "/minions help              show this message."
-    ];
-    
-    await ack();
-    await respond({
-        blocks: [
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": `${randomSentence()}`
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": wrapMarkdownCode(commands.join("\n")),
-                },
-            },
-        ]
-    });
-    app.logger.info(`'/minions help' command executed for ${command.user_name} in channel ${command.channel_name}`);
-}
 
 function validateGithubConfig() {
     app.logger.info(`validating config`);

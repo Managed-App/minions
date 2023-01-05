@@ -1,15 +1,15 @@
 const minionese = [
-    'Pōlä nōlä matōkä',
-    'Hello papageéna, tú le bélla cón la papaja',
-    'Terima kasih',
-    'Tulaliloo ti amo',
+    'Pōlä nōlä matōkä!',
+    'Hello papageéna, tú le bélla cón la papaja!',
+    'Terima kasih!',
+    'Tulaliloo ti amo!',
     'Gelato!',
     'Kanpai!',
-    'Pwede na',
-    'Para tu',
-    'Hana, dul, sae',
-    'Poulet tiki masala',
-    'Et pis c’est tout'
+    'Pwede na!',
+    'Para tu!',
+    'Hana, dul, sae!',
+    'Poulet tiki masala!',
+    'Et pis c’est tout!'
 ];
 
 function randomSentence() {
