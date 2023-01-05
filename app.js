@@ -1,15 +1,15 @@
-const {App} = require('@slack/bolt');
+const {App, LogLevel} = require('@slack/bolt');
 const {listImages, createGithubArtefacts} = require('./commands.js');
 const {randomSentence} = require("./minions");
 const {wrapMarkdownCode} = require("./util");
 const {showEnv} = require("./commands");
 
-// Initializes your app with your bot token and signing secret
 const app = new App({
     token: process.env.SLACK_BOT_TOKEN,
     signingSecret: process.env.SLACK_SIGNING_SECRET,
     socketMode: true,
     appToken: process.env.SLACK_APP_TOKEN,
+    logLevel: LogLevel.DEBUG,
     // Socket Mode doesn't listen on a port, but in case you want your app to respond to OAuth,
     // you still need to listen on some port!
     port: process.env.PORT || 3000
@@ -19,32 +19,32 @@ app.command('/minions', async ({ command, ack, respond }) => {
     var stem = command.text.split(" ")[0];
     switch (stem) {
         case "env":
-            await env(command.text, ack, respond);
+            await env(command, ack, respond, app.logger);
             break;
         case "images":
-            await images(command.text, ack, respond);
+            await images(command, ack, respond, app.logger);
             break;
         case "image":
-            await images(command.text, ack, respond);
+            await images(command, ack, respond, app.logger);
             break
         case "tag":
-            await tag(command.text, ack, respond);
+            await tag(command, ack, respond, app.logger);
             break;
         case "help":
-            await help(ack, respond);
+            await help(command, ack, respond, app.logger);
             break;
         default:
-            await help(ack, respond);
+            await help(command, ack, respond, app.logger);
             break;
     }// Acknowledge command request
 });
 
-async function env(txt, ack, respond) {
-    var target = txt.split(" ")[1];
+async function env(command, ack, respond, log) {
+    var target = command.text.split(" ")[1];
+    await ack();
 
     if (target && (target === "uat" || target === "prod")) {
-        var result = await showEnv(target);
-        await ack();
+        var result = await showEnv(target, log);
         await respond({
             blocks: [
                 {
@@ -63,17 +63,19 @@ async function env(txt, ack, respond) {
                 },
             ]
         });
-
+        log.info(`'/minions ${command.text}' command executed for ${command.user_name} in channel ${command.channel_name}`);
     } else {
-        await respond("command failed");
+
+        log.warn(`'/minions ${command.text}' command failed for ${command.user_name} in channel ${command.channel_name}`);
+        await respond(`'/minions ${command.text}' invalid, try 'uat' | 'prod' for env`);
     }
 
 }
 
-async function images(txt, ack, respond) {
-    var imgs = listImages();
+async function images(command, ack, respond, log) {
+    var imgs = listImages(log);
 
-    var version = txt.split(" ")[1];
+    var version = command.text.split(" ")[1];
     if (version && version==="latest") {
         imgs = [imgs[0]];
     } else if (version && version.length>0) {
@@ -101,25 +103,28 @@ async function images(txt, ack, respond) {
             },
         ]
     });
+    log.info(`'/minions ${command.text}' command executed for ${command.user_name} in channel ${command.channel_name}`);
 }
 
-async function tag(txt, ack, respond) {
-    const version = txt.split(" ")[1];
+async function tag(command, ack, respond, log) {
+    const version = command.text.split(" ")[1];
     if (version && version.length >0) {
-        const gh = await createGithubArtefacts(version);
+        const gh = await createGithubArtefacts(app, version, log);
         if (gh) {
             await ack();
             await respond(wrapMarkdownCode(`master revision tagged and release created on github ${txt.split(" ")[1]}`));
+            log.info(`'/minions ${command.text}' command executed for ${command.user_name} in channel ${command.channel_name}`);
         } else {
             await respond(wrapMarkdownCode(`command failed`));
+            log.warn(`'/minions ${command.text}' command failed for ${command.user_name} in channel ${command.channel_name}`);
         }
 
     } else {
-        await help();
+        await help(command, ack, respond, log);
     }
 }
 
-async function help(ack, respond) {
+async function help(command, ack, respond, log) {
     const commands = [
         "/minions env uat           show deployed versions on uat env on EKS.",
         "/minions env prod          show deployed versions on prod env on EKS.",
@@ -150,11 +155,74 @@ async function help(ack, respond) {
             },
         ]
     });
+    app.logger.info(`'/minions help' command executed for ${command.user_name} in channel ${command.channel_name}`);
+}
+
+function validateGithubConfig() {
+    app.logger.info(`validating config`);
+    var owner = process.env.GITHUB_ORG;
+    var repo = process.env.GITHUB_REPONAME;
+    if (!(owner || repo)) {
+        log.error("GITHUB_ORG or GITHUB_REPONAME env not configured, aborting Minions ");
+        process.exit(-1);
+    }
+    app.logger.info(`found GITHUB_ORG ${owner}`);
+    app.logger.info(`found GITHUB_REPONAME ${repo}`);
+}
+
+function validateSlackConfig() {
+    var slackSigningSecret = process.env.SLACK_SIGNING_SECRET;
+    var slackBotToken = process.env.SLACK_BOT_TOKEN;
+    var slackAppToken = process.env.SLACK_APP_TOKEN;
+    if (!(slackSigningSecret || slackBotToken || slackAppToken)) {
+        log.error("SLACK_SIGNING_SECRET, SLACK_BOT_TOKEN or SLACK_APP_TOKEN env not configured, aborting Minions ");
+        process.exit(-1);
+    }
+    app.logger.info(`found SLACK_SIGNING_SECRET, SLACK_BOT_TOKEN or SLACK_APP_TOKEN`);
+}
+
+function validateRubyConfig() {
+    var rubyPath = process.env.RUBY_PATH;
+    var gemHome = process.env.GEM_HOME;
+    var gemPath = process.env.GEM_PATH;
+    if (!(rubyPath || gemHome || gemPath)) {
+        log.error("RUBY_PATH, GEM_HOME, or GEM_PATH env not configured, aborting Minions ");
+        process.exit(-1);
+    }
+    app.logger.info(`found RUBY_PATH ${rubyPath}`);
+    app.logger.info(`found GEM_HOME ${gemHome}`);
+    app.logger.info(`found GEM_PATH ${gemPath}`);
+}
+
+function validateManagedConfig() {
+    var managedHome = process.env.MANAGED_HOME;
+    if (!(managedHome)) {
+        log.error("MANAGED_HOME env not configured, aborting Minions ");
+        process.exit(-1);
+    }
+    app.logger.info(`found MANAGED_HOME ${managedHome}`);
+}
+
+function validateDeisConfig() {
+    var deisHome = process.env.DEIS_HOME;
+    if (!(deisHome)) {
+        log.error("DEIS_HOME env not configured, aborting Minions ");
+        process.exit(-1);
+    }
+    app.logger.info(`found DEIS_HOME ${deisHome}`);
 }
 
 (async () => {
-    // Start your app
-    await app.start(process.env.PORT || 3000);
+    //validate
+    app.logger.info('~(^^)- Minions!');
 
-    console.log('⚡️ Bolt app is running!');
+    validateGithubConfig();
+    validateSlackConfig();
+    validateRubyConfig();
+    validateManagedConfig();
+    validateDeisConfig();
+
+    const port = process.env.PORT || 3000;
+    app.logger.info(`start listening on ${port}`);
+    await app.start(port);
 })();
