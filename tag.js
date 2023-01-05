@@ -19,7 +19,7 @@ async function Tag(command, ack, respond, log) {
                                 "type": "section",
                                 "text": {
                                     "type": "mrkdwn",
-                                    "text": `Release \`${version}\` created on Github, image build now in progress.`
+                                    "text": `Release \`${version}\` created on Github, image build now in progress ETA ~11m`
                                 },
                             },
                         ]
