@@ -53,7 +53,7 @@ async function Env(app, command, ack, respond, log) {
             response_type: "in_channel",
             text: `env \`${target}\` beginning deployment`,
         });
-        var result = await runSkipperDeploy(target, version, log);
+        var result = await runSkipperDeploy(target, version, respond, log);
         log.info(`'/minions ${command.text}' command executed for ${command.user_name} in channel ${command.channel_name}`);
     } else {
         await Help(command, ack, respond, log);
@@ -78,7 +78,7 @@ async function runDeisReleasesList(target, log) {  //needed for ruby2.6.4
     return version;
 }
 
-async function runSkipperDeploy(target, version, log) {
+async function runSkipperDeploy(target, version, respond, log) {
     const command = `cd ${process.env.MANAGED_HOME} && ${process.env.SKIPPER_HOME}/skipper deploy managed:${version} --group managed-${target}`;
     const resp = execSync(command, {
             env: {
