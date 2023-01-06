@@ -66,7 +66,8 @@ async function Images(command, ack, respond, log) {
 }
 
 async function runSkipperListImages(log) {
-    var resp = execSync("cd " + process.env.MANAGED_HOME + " && bin/skipper images", {
+    let cmd = `cd ${process.env.MANAGED_HOME} && ${process.env.SKIPPER_HOME}/skipper images`;
+    var resp = execSync(cmd, {
         env: {
             ...process.env,
             PATH: process.env.RUBY_PATH + ":$PATH",
@@ -74,6 +75,7 @@ async function runSkipperListImages(log) {
             GEM_HOME: process.env.GEM_HOME,
         }
     });
+    log.debug(`os executed ${cmd}`);
     resp = stripAnsi(resp.toString("utf8")).split("\n").sort(
         (a, b) => {
             if (a.split(" ")[1] > b.split(" ")[1]) {
