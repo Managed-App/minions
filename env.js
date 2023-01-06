@@ -53,21 +53,45 @@ async function Env(app, command, ack, respond, log) {
             response_type: "in_channel",
             text: `env \`${target}\` beginning deployment`,
         });
-        var result = await runSkipperDeploy(target,
-            version,
-            log,
-            () => {
-                deploymentCallback(target, respond, version, log);
-            });
+        var result = await runSkipperDeploy(target, version, log);
         log.info(`'/minions ${command.text}' command executed for ${command.user_name} in channel ${command.channel_name}`);
     } else {
         await Help(command, ack, respond, log);
     }
 }
 
-async function deploymentCallback(target, respond, version, log) {
+async function runDeisReleasesList(target, log) {  //needed for ruby2.6.4
+    const command = `cd ${process.env.MANAGED_HOME} && ${process.env.DEIS_HOME}/deis releases:list -a managed-${target}`;
+    const resp = execSync(command, {
+        env: {
+            ...process.env,
+            PATH: process.env.RUBY_PATH + ":$PATH",
+            GEM_PATH: process.env.GEM_PATH,
+            GEM_HOME: process.env.GEM_HOME,
+        },
+    });
+    log.info(`os executed ${command}`);
+    var depls = stripAnsi(resp.toString("utf8")).split("\n");
+    depls = depls.filter((line) => line.includes("deployed"));
+    const version = depls[0].slice(depls[0].lastIndexOf(":") + 1);
+    log.info(`env ${target} running version ${version}`);
+    return version;
+}
+
+async function runSkipperDeploy(target, version, log) {
+    const command = `cd ${process.env.MANAGED_HOME} && ${process.env.SKIPPER_HOME}/skipper deploy managed:${version} --group managed-${target}`;
+    const resp = execSync(command, {
+            env: {
+                ...process.env,
+                PATH: process.env.RUBY_PATH + ":$PATH",
+                GEM_PATH: process.env.GEM_PATH,
+                GEM_HOME: process.env.GEM_HOME,
+            },
+        });
+    log.info(`os executed ${command} stdout: ${resp}`);
+
     let success = false;
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 100; i++) {
         const deployedVersion = await runDeisReleasesList(target, log);
         if (deployedVersion === version) {
             success = true;
@@ -88,41 +112,8 @@ async function deploymentCallback(target, respond, version, log) {
         });
         log.info(`env \'${target}\' deployment \'${version}\' incomplete. Check results with \`/minions env\``);
     }
+
     return success;
-}
-
-async function runDeisReleasesList(target, log) {  //needed for ruby2.6.4
-    const command = `cd ${process.env.MANAGED_HOME} && ${process.env.DEIS_HOME}/deis releases:list -a managed-${target}`;
-    const resp = execSync(command, {
-        env: {
-            ...process.env,
-            PATH: process.env.RUBY_PATH + ":$PATH",
-            GEM_PATH: process.env.GEM_PATH,
-            GEM_HOME: process.env.GEM_HOME,
-        }
-    });
-    log.info(`os executed ${command}`);
-    var depls = stripAnsi(resp.toString("utf8")).split("\n");
-    depls = depls.filter((line) => line.includes("deployed"));
-    const version = depls[0].slice(depls[0].lastIndexOf(":") + 1);
-    log.info(`env ${target} running version ${version}`);
-    return version;
-}
-
-async function runSkipperDeploy(target, version, log, onExit) {
-    const command = `cd ${process.env.MANAGED_HOME} && bin/skipper deploy managed:${version} --group managed-${target}`;
-    const resp = exec(command, {
-            env: {
-                ...process.env,
-                PATH: process.env.RUBY_PATH + ":$PATH",
-                GEM_PATH: process.env.GEM_PATH,
-                GEM_HOME: process.env.GEM_HOME,
-            }
-        },
-        onExit);
-    log.info(`os executed ${command}`);
-    log.info(`env ${target} deployment of version ${version} started`);
-    return resp;
 }
 
 module.exports = {Env};
