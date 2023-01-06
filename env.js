@@ -42,8 +42,8 @@ async function Env(app, command, ack, respond, log) {
         }
     } else if (cs.length == 4) {
         const target = cs[1];
-        const command = cs[2];
-        if (command !== "deploy") {
+        const action = cs[2];
+        if (action !== "deploy") {
             await Help(command, ack, respond, log);
             return;
         }
@@ -92,7 +92,8 @@ async function deploymentCallback(target, respond, version, log) {
 }
 
 async function runDeisReleasesList(target, log) {  //needed for ruby2.6.4
-    const resp = execSync(`cd ${process.env.MANAGED_HOME} && ${process.env.DEIS_HOME}/deis releases:list -a managed-${target}`, {
+    const command = `cd ${process.env.MANAGED_HOME} && ${process.env.DEIS_HOME}/deis releases:list -a managed-${target}`;
+    const resp = execSync(command, {
         env: {
             ...process.env,
             PATH: process.env.RUBY_PATH + ":$PATH",
@@ -100,6 +101,7 @@ async function runDeisReleasesList(target, log) {  //needed for ruby2.6.4
             GEM_HOME: process.env.GEM_HOME,
         }
     });
+    log.info(`os executed ${command}`);
     var depls = stripAnsi(resp.toString("utf8")).split("\n");
     depls = depls.filter((line) => line.includes("deployed"));
     const version = depls[0].slice(depls[0].lastIndexOf(":") + 1);
@@ -108,8 +110,8 @@ async function runDeisReleasesList(target, log) {  //needed for ruby2.6.4
 }
 
 async function runSkipperDeploy(target, version, log, onExit) {
-
-    const resp = exec(`cd ${process.env.MANAGED_HOME} && bin/skipper deploy managed:${version} --group managed-${target}`, {
+    const command = `cd ${process.env.MANAGED_HOME} && bin/skipper deploy managed:${version} --group managed-${target}`;
+    const resp = exec(command, {
             env: {
                 ...process.env,
                 PATH: process.env.RUBY_PATH + ":$PATH",
@@ -118,6 +120,7 @@ async function runSkipperDeploy(target, version, log, onExit) {
             }
         },
         onExit);
+    log.info(`os executed ${command}`);
     log.info(`env ${target} deployment of version ${version} started`);
     return resp;
 }
