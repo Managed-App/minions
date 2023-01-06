@@ -59,6 +59,7 @@ async function Images(command, ack, respond, log) {
     await ack();
     await respond(
         {
+            response_type: "in_channel",
             blocks: blocks
         });
     log.info(`'/minions ${command.text}' command executed for ${command.user_name} in channel ${command.channel_name}`);

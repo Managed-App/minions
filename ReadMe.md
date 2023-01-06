@@ -20,8 +20,8 @@ process in a Slackbot
 
 ### deploy release to specified environment.
 ```
-/minions deploy vnnn uat
-/minions deploy vnnn prod
+/minions env uat deploy vnnn
+/minions env prod deploy vnnn
 ```
 
 ### allow developers to check currently deployed version for an environment using SlackBot.

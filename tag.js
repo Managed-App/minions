@@ -14,6 +14,7 @@ async function Tag(command, ack, respond, log) {
             case 201:
                 await respond(
                     {
+                        response_type: "in_channel",
                         blocks: [
                             {
                                 "type": "section",
@@ -30,6 +31,7 @@ async function Tag(command, ack, respond, log) {
             case 422:
                 await respond(
                     {
+                        response_type: "in_channel",
                         blocks: [
                             {
                                 "type": "section",
@@ -47,6 +49,7 @@ async function Tag(command, ack, respond, log) {
             default:
                 await respond(
                     {
+                        response_type: "in_channel",
                         blocks: [
                             {
                                 "type": "section",

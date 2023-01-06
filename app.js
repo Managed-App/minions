@@ -20,7 +20,7 @@ app.command('/minions', async ({ command, ack, respond }) => {
     var stem = command.text.split(" ")[0];
     switch (stem) {
         case "env":
-            await Env(command, ack, respond, app.logger);
+            await Env(app, command, ack, respond, app.logger);
             break;
         case "images":
             await Images(command, ack, respond, app.logger);
@@ -37,8 +37,10 @@ app.command('/minions', async ({ command, ack, respond }) => {
         default:
             await Help(command, ack, respond, app.logger);
             break;
-    }// Acknowledge command request
+    }
 });
+
+
 
 function validateGithubConfig() {
     app.logger.info(`validating config`);

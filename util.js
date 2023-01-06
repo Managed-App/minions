@@ -7,4 +7,12 @@ function wrapMarkdownCode(raw) {
     return "```" + raw + "```";
 }
 
-module.exports = {stripAnsi, wrapMarkdownCode};
+function wait(ms) {
+    return new Promise((resolve, reject) => {
+        setTimeout(() => {
+            resolve(ms);
+        }, ms )
+    })
+}
+
+module.exports = {wait, stripAnsi, wrapMarkdownCode};
