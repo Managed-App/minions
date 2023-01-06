@@ -38,6 +38,10 @@ async function Images(command, ack, respond, log) {
             },
         ];
     } else {
+        let fmt = imgs.map((el => {
+            return `\`${el.split(" ")[1]}\`, hash \`${el.split(" ")[0]}\``;
+        })).join("\n");
+
         blocks = [...blocks,
             {
                 "type": "section",
@@ -50,7 +54,7 @@ async function Images(command, ack, respond, log) {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": `${wrapMarkdownCode(imgs.join("\n"))}`
+                    "text": fmt,
                 },
             },
         ];

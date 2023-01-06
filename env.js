@@ -1,6 +1,6 @@
 const {exec, execSync} = require("child_process");
 const {stripAnsi, wait} = require("./util");
-const {randomSentence} = require("./minions");
+const {randomSentence, blockify} = require("./minions");
 const {Help} = require("./help");
 
 async function Env(app, command, ack, respond, log) {
@@ -13,22 +13,7 @@ async function Env(app, command, ack, respond, log) {
             var result = await runDeisReleasesList(target, log);
             await respond({
                 response_type: "in_channel",
-                blocks: [
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": `${randomSentence()}`
-                        },
-                    },
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": `managed env \`${target}\` running version \`${result}\``
-                        },
-                    },
-                ]
+                blocks: blockify(`Managed env \`${target}\` running version \`${result}\``)
             });
             log.info(`'/minions ${command.text}' command executed for ${command.user_name} in channel ${command.channel_name}`);
             return result;
@@ -51,7 +36,7 @@ async function Env(app, command, ack, respond, log) {
 
         await respond({
             response_type: "in_channel",
-            text: `env \`${target}\` beginning deployment`,
+            blocks: blockify(`Beginning deployment for \`${target}\` env, version \`${version}\`. ETA ~7m.`)
         });
         var result = await runSkipperDeploy(target, version, respond, log);
         log.info(`'/minions ${command.text}' command executed for ${command.user_name} in channel ${command.channel_name}`);
@@ -99,18 +84,18 @@ async function runSkipperDeploy(target, version, respond, log) {
         }
         await wait(3000);
     }
+
+    let logAndRespond = async (msg) => {
+        log.info(msg);
+        await respond({
+            response_type: "in_channel",
+            text: msg,
+        });
+    }
     if (success) {
-        await respond({
-            response_type: "in_channel",
-            text: `env \`${target}\` deployment \`${version}\` complete`
-        });
-        log.info(`env \'${target}\' deployment \'${version}\' complete.`);
+        await logAndRespond(`Deployment complete for \`${target}\` env , version \`${version}\`.`);
     } else {
-        await respond({
-            response_type: "in_channel",
-            text: `env \`${target}\` deployment \`${version}\` incomplete. Check results with \`/minions env\``
-        });
-        log.info(`env \'${target}\' deployment \'${version}\' incomplete. Check results with \`/minions env\``);
+        await logAndRespond(`Uh oh, deployment incomplete for \`${target}\` env , version \`${version}\`. Check results with \`/minions env\``);
     }
 
     return success;

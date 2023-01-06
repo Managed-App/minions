@@ -17,4 +17,23 @@ function randomSentence() {
     return minionese[i];
 }
 
-module.exports = {randomSentence};
+function blockify(msg) {
+    return [
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": `${randomSentence()}`
+            },
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": msg,
+            },
+        },
+    ];
+}
+
+module.exports = {randomSentence, blockify};
