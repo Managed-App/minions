@@ -70,7 +70,7 @@ async function runDeisReleasesList(target, log) {  //needed for ruby2.6.4
             GEM_HOME: process.env.GEM_HOME,
         },
     });
-    log.info(`os executed ${command}`);
+    log.debug(`os executed ${command}`);
     var depls = stripAnsi(resp.toString("utf8")).split("\n");
     depls = depls.filter((line) => line.includes("deployed"));
     const version = depls[0].slice(depls[0].lastIndexOf(":") + 1);
@@ -88,7 +88,7 @@ async function runSkipperDeploy(target, version, respond, log) {
                 GEM_HOME: process.env.GEM_HOME,
             },
         });
-    log.info(`os executed ${command} stdout: ${resp}`);
+    log.debug(`os executed ${command} stdout: ${resp}`);
 
     let success = false;
     for (let i = 0; i < 100; i++) {
@@ -108,7 +108,7 @@ async function runSkipperDeploy(target, version, respond, log) {
     } else {
         await respond({
             response_type: "in_channel",
-            text: `env \`${target}\` deployment \`${version}\` incomplete`
+            text: `env \`${target}\` deployment \`${version}\` incomplete. Check results with \`/minions env\``
         });
         log.info(`env \'${target}\' deployment \'${version}\' incomplete. Check results with \`/minions env\``);
     }

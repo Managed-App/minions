@@ -87,4 +87,4 @@ async function runSkipperListImages(log) {
     return resp;
 }
 
-module.exports = {Images};
+module.exports = {Images, runSkipperListImages};

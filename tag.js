@@ -1,5 +1,7 @@
 const {Octokit} = require("octokit");
 const {Help} = require("./help");
+const {wait} = require("./util");
+const {runSkipperListImages} = require("./images");
 
 async function Tag(command, ack, respond, log) {
     const ls = `'/minions ${command.text}' command executed for ${command.user_name} in channel ${command.channel_name}`;
@@ -65,6 +67,29 @@ async function Tag(command, ack, respond, log) {
                 break;
         }
 
+        //try for 30 minutes to find the docker image on ECR
+        for (let i = 0; i < 180; i++) {
+            var imgs = await runSkipperListImages(log);
+            imgs = imgs.filter(img => img.includes(version));
+            if (imgs.length===1) {
+                await respond(
+                    {
+                        response_type: "in_channel",
+                        blocks: [
+                            {
+                                "type": "section",
+                                "text": {
+                                    "type": "mrkdwn",
+                                    "text": `\`${version}\` image created on managed ECR.`
+                                },
+                            },
+                        ]
+                    }
+                );
+                break;
+            }
+            await wait(10000);
+        }
     } else {
         await Help(command, ack, respond, log);
     }
