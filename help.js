@@ -1,4 +1,4 @@
-const {randomSentence} = require("./minions");
+const {randomSentence, blockify} = require("./minions");
 const {wrapMarkdownCode} = require("./util");
 
 async function Help(command, ack, respond, log) {
@@ -15,24 +15,7 @@ async function Help(command, ack, respond, log) {
     ];
 
     await ack();
-    await respond({
-        blocks: [
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": `${randomSentence()}`
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": wrapMarkdownCode(commands.join("\n")),
-                },
-            },
-        ]
-    });
+    await respond(blockify(wrapMarkdownCode(commands.join("\n"))));
     log.info(`'/minions help' command executed for ${command.user_name} in channel ${command.channel_name}`);
 }
 

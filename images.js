@@ -1,20 +1,21 @@
 const {execSync} = require("child_process");
 const {stripAnsi, wrapMarkdownCode} = require("./util");
 const {randomSentence} = require("./minions");
+const limit = 10;
 
 async function Images(command, ack, respond, log) {
     var imgs = await runSkipperListImages(log);
 
     var version = command.text.split(" ")[1];
-    if (version && version==="latest") {
+    if (version && version === "latest") {
         imgs = [imgs[0]];
-    } else if (version && version.length>0) {
+    } else if (version && version.length > 0) {
         imgs = imgs.filter(img => img.includes(version));
     }
 
-    //TODO make this better than hardcoding
-    if (imgs.length > 25) {
-        imgs = imgs.slice(0, 25)
+    //TODO make this better than hardcoding, maybe add a parameter. 
+    if (imgs.length > limit) {
+        imgs = imgs.slice(0, limit)
     }
 
     let blocks = [
@@ -27,7 +28,7 @@ async function Images(command, ack, respond, log) {
         }
     ];
 
-    if (imgs.length==0) {
+    if (imgs.length == 0) {
         blocks = [...blocks,
             {
                 "type": "section",
@@ -59,6 +60,12 @@ async function Images(command, ack, respond, log) {
             },
         ];
     }
+    
+    blocks = [...blocks,
+        {
+            "type": "divider",
+        },
+    ];
 
     await ack();
     await respond(

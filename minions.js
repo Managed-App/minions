@@ -12,28 +12,47 @@ const minionese = [
     'Et pis c’est tout!'
 ];
 
+const energy = [
+    '⚡',
+    '💡',
+    '⚛',
+    '🍌',
+    '💛'
+];
+
 function randomSentence() {
-    var i = Math.floor(Math.random()*minionese.length);
-    return minionese[i];
+    var i = Math.floor(Math.random() * minionese.length);
+    return randomEnergy() + " " + minionese[i];
+}
+
+function randomEnergy() {
+    var i = Math.floor(Math.random() * energy.length);
+    return energy[i];
 }
 
 function blockify(msg) {
-    return [
-        {
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": `${randomSentence()}`
+    return {
+        response_type: "in_channel",
+        blocks: [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": `${randomSentence()}`
+                },
             },
-        },
-        {
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": msg,
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": msg,
+                },
             },
-        },
-    ];
+            {
+                "type": "divider",
+            },
+        ]
+    }
 }
 
 module.exports = {randomSentence, blockify};

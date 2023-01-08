@@ -2,7 +2,8 @@ const {exec, execSync} = require("child_process");
 const {stripAnsi, wait} = require("./util");
 const {randomSentence, blockify} = require("./minions");
 const {Help} = require("./help");
-
+const uatAdminLink = "https://managed-uat.man.redant.com.au/admin";
+const prodAdminLink = "https://go.managedapp.com.au/admin"
 async function Env(app, command, ack, respond, log) {
     var cs = command.text.split(" ")
     await ack();
@@ -11,19 +12,13 @@ async function Env(app, command, ack, respond, log) {
 
         if (target && (target === "uat" || target === "prod")) {
             var result = await runDeisReleasesList(target, log);
-            await respond({
-                response_type: "in_channel",
-                blocks: blockify(`Managed env \`${target}\` running version \`${result}\``)
-            });
+
+            await respond(blockify(`Managed env \`${target}\` (${target=='uat'?uatAdminLink:prodAdminLink}) running version \`${result}\` `));
             log.info(`'/minions ${command.text}' command executed for ${command.user_name} in channel ${command.channel_name}`);
             return result;
         } else {
             log.warn(`'/minions ${command.text}' command failed for ${command.user_name} in channel ${command.channel_name}`);
-            await respond(
-                {
-                    response_type: "in_channel",
-                    text: `'/minions ${command.text}' invalid, try 'uat' | 'prod' for env`
-                });
+            await respond(blockify(`'/minions ${command.text}' invalid, try 'uat' | 'prod' for env`));
         }
     } else if (cs.length == 4) {
         const target = cs[1];
@@ -34,10 +29,8 @@ async function Env(app, command, ack, respond, log) {
         }
         const version = cs[3];
 
-        await respond({
-            response_type: "in_channel",
-            blocks: blockify(`Beginning deployment for \`${target}\` env, version \`${version}\`. ETA ~7m.`)
-        });
+        await respond(blockify(`Beginning deployment for \`${target}\` env, version \`${version}\`. ETA ~7m.`));
+
         var result = await runSkipperDeploy(target, version, respond, log);
         log.info(`'/minions ${command.text}' command executed for ${command.user_name} in channel ${command.channel_name}`);
     } else {
