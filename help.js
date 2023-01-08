@@ -11,6 +11,7 @@ async function Help(command, ack, respond, log) {
         "/minions images                list recent images on ECR.",
         "/minions images vnnn           filter for a specific image on ECR",
         "/minions images latest         show the latest image on ECR",
+        "/minions hello                 bananas!",
         "/minions help                  show this message."
     ];
 

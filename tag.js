@@ -16,14 +16,14 @@ async function Tag(command, ack, respond, log) {
 
         switch (rCode) {
             case 201:
-                await respond(blockify(`Release \`${version}\` created on Github, image build now in progress ${tagEta}`));
+                await respond(blockify(`Release \`${version}\` created on Github, ECR image build now in progress ${tagEta}.`));
                 log.info(ls);
                 //try for 30 minutes to find the docker image on ECR
                 for (let i = 0; i < 180; i++) {
                     var imgs = await runSkipperListImages(log);
                     imgs = imgs.filter(img => img.includes(version));
                     if (imgs.length===1) {
-                        await respond(blockify(`\`${version}\` image created on managed ECR.`));
+                        await respond(blockify(`ECR image \`${version}\` build complete, hash \`${imgs[0].split(" ")[0]}\`.`));
                         break;
                     }
                     await wait(10000);

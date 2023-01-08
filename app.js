@@ -3,6 +3,7 @@ const {Tag} = require('./tag.js');
 const {Env} = require('./env.js');
 const {Images} = require('./images.js');
 const {Help} = require('./help.js');
+const {Hello} = require("./hello");
 
 const app = new App({
     name: "Minions",
@@ -30,6 +31,9 @@ app.command('/minions', async ({ command, ack, respond }) => {
             break
         case "tag":
             await Tag(command, ack, respond, app.logger);
+            break;
+        case "hello":
+            await Hello(command, ack, respond, app.logger);
             break;
         case "help":
             await Help(command, ack, respond, app.logger);
