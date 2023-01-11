@@ -70,13 +70,15 @@ function validateSlackConfig() {
 }
 
 function validateRubyConfig() {
+    var rubyHome = process.env.RUBY_HOME;
     var rubyPath = process.env.RUBY_PATH;
     var gemHome = process.env.GEM_HOME;
     var gemPath = process.env.GEM_PATH;
-    if (!(rubyPath && gemHome && gemPath)) {
-        app.logger.error("RUBY_PATH, GEM_HOME, or GEM_PATH env not configured, aborting Minions ");
+    if (!(rubyHome && rubyPath && gemHome && gemPath)) {
+        app.logger.error("RUBY_HOME, RUBY_PATH, GEM_HOME, or GEM_PATH env not configured, aborting Minions ");
         process.exit(-1);
     }
+    app.logger.info(`found RUBY_HOME ${rubyHome}`);
     app.logger.info(`found RUBY_PATH ${rubyPath}`);
     app.logger.info(`found GEM_HOME ${gemHome}`);
     app.logger.info(`found GEM_PATH ${gemPath}`);

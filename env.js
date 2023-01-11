@@ -57,14 +57,17 @@ async function runDeisReleasesList(target, log) {  //needed for ruby2.6.4
 }
 
 async function runSkipperDeploy(target, version, respond, log) {
-    const command = `cd ${process.env.MANAGED_HOME} && ${process.env.SKIPPER_HOME}/skipper deploy managed:${version} --group managed-${target}`;
+    const command = `${process.env.RUBY_HOME}/ruby bin/skipper deploy managed:${version} --group managed-${target}`;
     const resp = execSync(command, {
             env: {
                 ...process.env,
-                PATH: process.env.RUBY_PATH + ":$PATH",
+                PATH: process.env.RUBY_PATH + ":" + process.env.PATH,
+                RUBY_PATH: process.env.RUBY_PATH,
                 GEM_PATH: process.env.GEM_PATH,
                 GEM_HOME: process.env.GEM_HOME,
+                RUBY_VERSION: "ruby-2.6.4",
             },
+            cwd: `${process.env.MANAGED_HOME}`,
         });
     log.debug(`os executed ${command} stdout: ${resp}`);
 
