@@ -83,10 +83,7 @@ async function runSkipperDeploy(target, version, respond, log) {
 
     let logAndRespond = async (msg) => {
         log.info(msg);
-        await respond({
-            response_type: "in_channel",
-            text: msg,
-        });
+        await respond(blockify(msg));
     }
     if (success) {
         await logAndRespond(`Deployment complete for \`${target}\` env , version \`${version}\`.`);
