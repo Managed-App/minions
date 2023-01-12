@@ -21,7 +21,7 @@ function wait(ms) {
 const attemptDeployToEnv = async (envName, actorSlackName, actorSlackId, deploymentPromiseCallback) => {
     return new Promise((resolve, reject) => {
         if (_.has(global.deploymentState, envName)) {
-            reject(new ConcurrentDeploymentError(`Env ${env} deployment triggered by ${global.deploymentState[envName][user_name]} is in progress, please try again later.`))
+            return reject(new ConcurrentDeploymentError(`Env ${envName} deployment triggered by ${global.deploymentState[envName]['actor']['userName']} is in progress, please try again later.`))
         }
 
         _.set(global.deploymentState, envName, {

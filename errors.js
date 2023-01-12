@@ -4,3 +4,5 @@ class ConcurrentDeploymentError extends Error {
         this.name = 'ConcurrentDeploymentError'
     }
 }
+
+module.exports = {ConcurrentDeploymentError};

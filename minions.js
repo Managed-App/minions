@@ -30,29 +30,33 @@ function randomEnergy() {
     return energy[i];
 }
 
-function blockify(msg) {
+function blockifyForChannel(msg) {
     return {
         response_type: "in_channel",
-        blocks: [
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": `${randomSentence()}`
-                },
-            },
-            {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": msg,
-                },
-            },
-            {
-                "type": "divider",
-            },
-        ]
+        blocks: blockify(msg)
     }
 }
 
-module.exports = {randomSentence, blockify};
+function blockify(msg) {
+    return [
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": `${randomSentence()}`
+            },
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": msg,
+            },
+        },
+        {
+            "type": "divider",
+        },
+    ]
+}
+
+module.exports = {randomSentence, blockify, blockifyForChannel};

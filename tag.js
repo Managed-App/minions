@@ -2,7 +2,7 @@ const {Octokit} = require("octokit");
 const {Help} = require("./help");
 const {wait} = require("./util");
 const {runSkipperListImages} = require("./images");
-const {blockify} = require("./minions");
+const {blockifyForChannel} = require("./minions");
 const tagEta = "ETA ~11m";
 
 async function Tag(command, ack, respond, log) {
@@ -16,26 +16,26 @@ async function Tag(command, ack, respond, log) {
 
         switch (rCode) {
             case 201:
-                await respond(blockify(`Release \`${version}\` created on Github, ECR image build now in progress ${tagEta}.`));
+                await respond(blockifyForChannel(`Release \`${version}\` created on Github, ECR image build now in progress ${tagEta}.`));
                 log.info(ls);
                 //try for 30 minutes to find the docker image on ECR
                 for (let i = 0; i < 180; i++) {
                     var imgs = await runSkipperListImages(log);
                     imgs = imgs.filter(img => img.includes(version));
                     if (imgs.length===1) {
-                        await respond(blockify(`ECR image \`${version}\` build complete, hash \`${imgs[0].split(" ")[0]}\`.`));
+                        await respond(blockifyForChannel(`ECR image \`${version}\` build complete, hash \`${imgs[0].split(" ")[0]}\`.`));
                         break;
                     }
                     await wait(10000);
                 }
                 break;
             case 422:
-                await respond(blockify(`Release \`${version}\` already exists on Github, no action required.`));
+                await respond(blockifyForChannel(`Release \`${version}\` already exists on Github, no action required.`));
                 log.info(lf);
                 break;
             case 500:
             default:
-                await respond(blockify(`Error creating release \`${version}\` on Github, check results manually before deploying.`));
+                await respond(blockifyForChannel(`Error creating release \`${version}\` on Github, check results manually before deploying.`));
                 log.warn(lf);
                 break;
         }
