@@ -1,4 +1,5 @@
 const _ = require('lodash');
+const { ConcurrentDeploymentError } = require('./errors');
 
 function stripAnsi(raw) {
     return raw.replace(
@@ -17,18 +18,24 @@ function wait(ms) {
     })
 }
 
-const attemptDeployToEnv = async (envName, actorName, deploymentPromiseCallback) => {
+const attemptDeployToEnv = async (envName, actorSlackName, actorSlackId, deploymentPromiseCallback) => {
     return new Promise((resolve, reject) => {
         if (_.has(global.deploymentState, envName)) {
-            reject(`Env ${env} deployment triggered by ${global.deploymentState[envName][user]} is in progress, please try again later.`)
+            reject(new ConcurrentDeploymentError(`Env ${env} deployment triggered by ${global.deploymentState[envName][user_name]} is in progress, please try again later.`))
         }
 
-        _.set(global.deploymentState, envName, { command: 'deploy', user: actorName })
+        _.set(global.deploymentState, envName, {
+            command: 'deploy',
+            actor: {
+                id: actorSlackId,
+                userName: actorSlackName
+            }
+        })
 
         deploymentPromiseCallback
             .then(() => _.unset(global.deploymentState, envName))
             .then(() => resolve())
-            .catch((error) => reject(error))
+            .catch((error) => reject(new Error(error)))
     })
 }
 
