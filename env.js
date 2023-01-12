@@ -39,7 +39,7 @@ async function Env(app, command, ack, respond, log) {
 }
 
 async function runDeisReleasesList(target, log) {  //needed for ruby2.6.4
-    const command = `cd ${process.env.MANAGED_HOME} && ${process.env.DEIS_HOME}/deis releases:list -a managed-${target}`;
+    const command = `${process.env.DEIS_HOME}/deis releases:list -a managed-${target}`;
     const resp = execSync(command, {
         env: {
             ...process.env,
@@ -47,6 +47,7 @@ async function runDeisReleasesList(target, log) {  //needed for ruby2.6.4
             GEM_PATH: process.env.GEM_PATH,
             GEM_HOME: process.env.GEM_HOME,
         },
+        cwd: `${process.env.MANAGED_HOME}`,
     });
     log.debug(`os executed ${command}`);
     var depls = stripAnsi(resp.toString("utf8")).split("\n");
