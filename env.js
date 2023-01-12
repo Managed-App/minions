@@ -1,10 +1,11 @@
 const {exec, execSync} = require("child_process");
 const {stripAnsi, wait, attemptDeployToEnv} = require("./util");
+const { ConcurrentDeploymentError } = require('./errors');
 const {randomSentence, blockify} = require("./minions");
 const {Help} = require("./help");
 const uatAdminLink = "https://managed-uat.man.redant.com.au/admin";
 const prodAdminLink = "https://go.managedapp.com.au/admin"
-async function Env(app, command, ack, respond, log) {
+async function Env(client, command, ack, respond, log) {
     var cs = command.text.split(" ")
     await ack();
     if (cs.length == 2) {
@@ -29,7 +30,7 @@ async function Env(app, command, ack, respond, log) {
         }
         const version = cs[3];
 
-        await attemptDeployToEnv(target, command.user_name, async () => {
+        await attemptDeployToEnv(target, command.user_name, command.user_id, async () => {
             await respond(blockify(`Beginning deployment for \`${target}\` env, version \`${version}\`. ETA ~7m.`));
 
             var result = await runSkipperDeploy(target, version, respond, log);
@@ -37,10 +38,24 @@ async function Env(app, command, ack, respond, log) {
 
             return result
         })
-        .catch(reason => respond(blockify(reason)))
+        .catch(error => {
+            if (error instanceof ConcurrentDeploymentError) {
+                messageCurrentDeployerAboutAttepmtedDeployment(target, command.user_name, command.token)
+            }
+
+            respond(blockify(error.message))
+        })
     } else {
         await Help(command, ack, respond, log);
     }
+}
+
+const messageCurrentDeployerAboutAttepmtedDeployment = async (envName, attemptedDeployerName, slackToken) => {
+    return await client.chat.postMessage({
+        token: slackToken,
+        channel: global.deploymentState[envName]['actor']['id'],
+        blocks: blockify(`${attemptedDeployerName} unsuccessfully attempted deployment while environment ${envName} is busy.`)
+    })
 }
 
 async function runDeisReleasesList(target, log) {  //needed for ruby2.6.4
