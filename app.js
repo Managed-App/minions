@@ -50,8 +50,9 @@ function validateGithubConfig() {
     app.logger.info(`validating config`);
     var owner = process.env.GITHUB_ORG;
     var repo = process.env.GITHUB_REPONAME;
-    if (!(owner || repo)) {
-        app.logger.error("GITHUB_ORG or GITHUB_REPONAME env not configured, aborting Minions ");
+    vark token = process.env.GITHUB_TOKEN;
+    if (!(owner && repo && token)) {
+        app.logger.error("GITHUB_ORG, GITHUB_REPONAME or GITHUB_TOKEN env not configured, aborting Minions.");
         process.exit(-1);
     }
     app.logger.info(`found GITHUB_ORG ${owner}`);
@@ -63,7 +64,7 @@ function validateSlackConfig() {
     var slackBotToken = process.env.SLACK_BOT_TOKEN;
     var slackAppToken = process.env.SLACK_APP_TOKEN;
     if (!(slackSigningSecret && slackBotToken && slackAppToken)) {
-        app.logger.error("SLACK_SIGNING_SECRET, SLACK_BOT_TOKEN or SLACK_APP_TOKEN env not configured, aborting Minions ");
+        app.logger.error("SLACK_SIGNING_SECRET, SLACK_BOT_TOKEN or SLACK_APP_TOKEN env not configured, aborting Minions.");
         process.exit(-1);
     }
     app.logger.info(`found SLACK_SIGNING_SECRET, SLACK_BOT_TOKEN or SLACK_APP_TOKEN`);
@@ -75,7 +76,7 @@ function validateRubyConfig() {
     var gemHome = process.env.GEM_HOME;
     var gemPath = process.env.GEM_PATH;
     if (!(rubyHome && rubyPath && gemHome && gemPath)) {
-        app.logger.error("RUBY_HOME, RUBY_PATH, GEM_HOME, or GEM_PATH env not configured, aborting Minions ");
+        app.logger.error("RUBY_HOME, RUBY_PATH, GEM_HOME, or GEM_PATH env not configured, aborting Minions.");
         process.exit(-1);
     }
     app.logger.info(`found RUBY_HOME ${rubyHome}`);
@@ -87,7 +88,7 @@ function validateRubyConfig() {
 function validateManagedConfig() {
     var managedHome = process.env.MANAGED_HOME;
     if (!(managedHome)) {
-        app.logger.error("MANAGED_HOME env not configured, aborting Minions ");
+        app.logger.error("MANAGED_HOME env not configured, aborting Minions.");
         process.exit(-1);
     }
     app.logger.info(`found MANAGED_HOME ${managedHome}`);
@@ -96,7 +97,7 @@ function validateManagedConfig() {
 function validateDeisConfig() {
     var deisHome = process.env.DEIS_HOME;
     if (!(deisHome)) {
-        app.logger.error("DEIS_HOME env not configured, aborting Minions ");
+        app.logger.error("DEIS_HOME env not configured, aborting Minions.");
         process.exit(-1);
     }
     app.logger.info(`found DEIS_HOME ${deisHome}`);
@@ -105,7 +106,7 @@ function validateDeisConfig() {
 function validateSkipperConfig() {
     var skipperHome = process.env.SKIPPER_HOME;
     if (!(skipperHome)) {
-        app.logger.error("SKIPPER_HOME env not configured, aborting Minions ");
+        app.logger.error("SKIPPER_HOME env not configured, aborting Minions.");
         process.exit(-1);
     }
     app.logger.info(`found SKIPPER_HOME ${skipperHome}`);
