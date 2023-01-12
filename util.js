@@ -20,7 +20,7 @@ function wait(ms) {
 const attemptDeployToEnv = async (envName, actorName, deploymentPromiseCallback) => {
     return new Promise((resolve, reject) => {
         if (_.has(global.deploymentState, envName)) {
-            reject(`Env ${env} deployment triggered by ${actorName} is in progress, please try again later.`)
+            reject(`Env ${env} deployment triggered by ${global.deploymentState[envName][user]} is in progress, please try again later.`)
         }
 
         _.set(global.deploymentState, envName, { command: 'deploy', user: actorName })
