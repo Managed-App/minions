@@ -5,6 +5,7 @@ const limit = 10;
 
 async function Images(command, ack, respond, log) {
     var imgs = await runSkipperListImages(log);
+    await ack();
 
     var version = command.text.split(" ")[1];
     if (version && version === "latest") {
@@ -67,7 +68,6 @@ async function Images(command, ack, respond, log) {
         },
     ];
 
-    await ack();
     await respond(
         {
             response_type: "in_channel",
@@ -77,14 +77,15 @@ async function Images(command, ack, respond, log) {
 }
 
 async function runSkipperListImages(log) {
-    let cmd = `cd ${process.env.MANAGED_HOME} && ${process.env.SKIPPER_HOME}/skipper images`;
+    let cmd = `${process.env.RUBY_HOME}/ruby bin/skipper images`;
     var resp = execSync(cmd, {
         env: {
             ...process.env,
             PATH: process.env.RUBY_PATH + ":$PATH",
             GEM_PATH: process.env.GEM_PATH,
             GEM_HOME: process.env.GEM_HOME,
-        }
+        },
+        cwd: `${process.env.MANAGED_HOME}`,
     });
     log.debug(`os executed ${cmd}`);
     resp = stripAnsi(resp.toString("utf8")).split("\n").sort(
