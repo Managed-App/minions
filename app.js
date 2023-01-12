@@ -50,7 +50,7 @@ function validateGithubConfig() {
     app.logger.info(`validating config`);
     var owner = process.env.GITHUB_ORG;
     var repo = process.env.GITHUB_REPONAME;
-    vark token = process.env.GITHUB_TOKEN;
+    var token = process.env.GITHUB_TOKEN;
     if (!(owner && repo && token)) {
         app.logger.error("GITHUB_ORG, GITHUB_REPONAME or GITHUB_TOKEN env not configured, aborting Minions.");
         process.exit(-1);
