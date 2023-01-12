@@ -33,10 +33,10 @@ async function Env(client, command, ack, respond, log) {
         attemptDeployToEnv(target, command.user_name, command.user_id, async () => {
             await respond(blockifyForChannel(`Beginning deployment for \`${target}\` env, version \`${version}\`. ETA ~7m.`));
 
-            // var result = await runSkipperDeploy(target, version, respond, log);
+            var result = await runSkipperDeploy(target, version, respond, log);
             log.info(`'/minions ${command.text}' command executed for ${command.user_name} in channel ${command.channel_name}`);
 
-            return true
+            return result
         })
         .catch(error => {
             if (error instanceof ConcurrentDeploymentError) {
