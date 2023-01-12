@@ -1,5 +1,5 @@
 const {exec, execSync} = require("child_process");
-const {stripAnsi, wait} = require("./util");
+const {stripAnsi, wait, attemptDeployToEnv} = require("./util");
 const {randomSentence, blockify} = require("./minions");
 const {Help} = require("./help");
 const uatAdminLink = "https://managed-uat.man.redant.com.au/admin";
@@ -29,10 +29,15 @@ async function Env(app, command, ack, respond, log) {
         }
         const version = cs[3];
 
-        await respond(blockify(`Beginning deployment for \`${target}\` env, version \`${version}\`. ETA ~7m.`));
+        await attemptDeployToEnv(target, command.user_name, async () => {
+            await respond(blockify(`Beginning deployment for \`${target}\` env, version \`${version}\`. ETA ~7m.`));
 
-        var result = await runSkipperDeploy(target, version, respond, log);
-        log.info(`'/minions ${command.text}' command executed for ${command.user_name} in channel ${command.channel_name}`);
+            var result = await runSkipperDeploy(target, version, respond, log);
+            log.info(`'/minions ${command.text}' command executed for ${command.user_name} in channel ${command.channel_name}`);
+
+            return result
+        })
+        .catch(reason => respond(blockify(reason)))
     } else {
         await Help(command, ack, respond, log);
     }
