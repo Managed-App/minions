@@ -5,6 +5,8 @@ const {Images} = require('./images.js');
 const {Help} = require('./help.js');
 const {Hello} = require("./hello");
 
+global.deploymentState = {}
+
 const app = new App({
     name: "Minions",
     token: process.env.SLACK_BOT_TOKEN,
