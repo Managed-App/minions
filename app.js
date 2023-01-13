@@ -46,7 +46,9 @@ app.command('/minions', async ({ command, ack, respond, client }) => {
     }
 });
 
-
+app.error((error, logger) => {
+    logger.error(error);
+});
 
 function validateGithubConfig() {
     app.logger.info(`validating config`);
