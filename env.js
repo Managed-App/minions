@@ -40,7 +40,7 @@ async function Env(client, command, ack, respond, log) {
         })
         .catch(error => {
             if (error instanceof ConcurrentDeploymentError) {
-                messageCurrentDeployerAboutAttepmtedDeployment(client, target, command.user_name)
+                messageCurrentDeployerAboutAttemptedDeployment(client, target, command.user_name)
             }
 
             respond(blockifyForChannel(error.message))
@@ -50,11 +50,11 @@ async function Env(client, command, ack, respond, log) {
     }
 }
 
-const messageCurrentDeployerAboutAttepmtedDeployment = async (client, envName, attemptedDeployerName) => {
+const messageCurrentDeployerAboutAttemptedDeployment = async (client, envName, attemptedDeployerName) => {
     return client.chat.postMessage({
         token: process.env.SLACK_BOT_TOKEN,
         channel: global.deploymentState[envName]['actor']['id'],
-        blocks: blockify(`${attemptedDeployerName} unsuccessfully attempted deployment while environment ${envName} is busy.`)
+        blocks: blockify(`blocked ${attemptedDeployerName} from deploying to ${envName} while job is in progress.`)
     })
 }
 
