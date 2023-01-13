@@ -1,10 +1,14 @@
 const {exec, execSync} = require("child_process");
+const util = require('util')
 const {stripAnsi, wait, attemptDeployToEnv} = require("./util");
 const { ConcurrentDeploymentError } = require('./errors');
 const {blockify, blockifyForChannel} = require("./minions");
 const {Help} = require("./help");
 const uatAdminLink = "https://managed-uat.man.redant.com.au/admin";
 const prodAdminLink = "https://go.managedapp.com.au/admin"
+
+const execPromise = util.promisify(exec)
+
 async function Env(client, command, ack, respond, log) {
     var cs = command.text.split(" ")
     await ack();
@@ -78,8 +82,9 @@ async function runDeisReleasesList(target, log) {  //needed for ruby2.6.4
 }
 
 async function runSkipperDeploy(target, version, respond, log) {
-    const command = `${process.env.RUBY_HOME}/ruby bin/skipper deploy managed:${version} --group managed-${target}`;
-    const resp = execSync(command, {
+    return new Promise((resolve) => {
+        const command = `${process.env.RUBY_HOME}/ruby bin/skipper deploy managed:${version} --group managed-${target}`;
+        execPromise(command, {
             env: {
                 ...process.env,
                 PATH: process.env.RUBY_PATH + ":" + process.env.PATH,
@@ -89,30 +94,36 @@ async function runSkipperDeploy(target, version, respond, log) {
                 RUBY_VERSION: "ruby-2.6.4",
             },
             cwd: `${process.env.MANAGED_HOME}`,
-        });
-    log.debug(`os executed ${command} stdout: ${resp}`);
+        })
+            .then(resp => log.debug(`os executed ${command} stdout: ${resp}`))
+            .then(async () => {
+                let isSuccess = false;
+                for (let i = 0; i < 100; i++) {
+                    const deployedVersion = await runDeisReleasesList(target, log);
+                    if (deployedVersion === version) {
+                        isSuccess = true;
+                        break;
+                    }
+                    await wait(3000);
+                }
 
-    let success = false;
-    for (let i = 0; i < 100; i++) {
-        const deployedVersion = await runDeisReleasesList(target, log);
-        if (deployedVersion === version) {
-            success = true;
-            break;
-        }
-        await wait(3000);
-    }
+                return isSuccess
+            })
+            .then(async isSuccess => {
+                let logAndRespond = async (msg) => {
+                    log.info(msg);
+                    await respond(blockifyForChannel(msg));
+                }
+                if (isSuccess) {
+                    await logAndRespond(`Deployment complete for \`${target}\` env , version \`${version}\`.`);
+                } else {
+                    await logAndRespond(`Uh oh, deployment incomplete for \`${target}\` env , version \`${version}\`. Check results with \`/minions env\``);
+                }
 
-    let logAndRespond = async (msg) => {
-        log.info(msg);
-        await respond(blockifyForChannel(msg));
-    }
-    if (success) {
-        await logAndRespond(`Deployment complete for \`${target}\` env , version \`${version}\`.`);
-    } else {
-        await logAndRespond(`Uh oh, deployment incomplete for \`${target}\` env , version \`${version}\`. Check results with \`/minions env\``);
-    }
-
-    return success;
+                return isSuccess
+            })
+            .then(isSuccess => resolve(isSuccess))
+    })
 }
 
 module.exports = {Env};
