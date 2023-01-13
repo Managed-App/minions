@@ -51,7 +51,7 @@ async function Env(client, command, ack, respond, log) {
 }
 
 const messageCurrentDeployerAboutAttepmtedDeployment = async (client, envName, attemptedDeployerName) => {
-    return await client.chat.postMessage({
+    return client.chat.postMessage({
         token: process.env.SLACK_BOT_TOKEN,
         channel: global.deploymentState[envName]['actor']['id'],
         blocks: blockify(`${attemptedDeployerName} unsuccessfully attempted deployment while environment ${envName} is busy.`)
