@@ -1,10 +1,11 @@
 const {exec, execSync} = require("child_process");
-const {stripAnsi, wait} = require("./util");
-const {randomSentence, blockify} = require("./minions");
+const {stripAnsi, wait, attemptDeployToEnv} = require("./util");
+const { ConcurrentDeploymentError } = require('./errors');
+const {blockify, blockifyForChannel} = require("./minions");
 const {Help} = require("./help");
 const uatAdminLink = "https://managed-uat.man.redant.com.au/admin";
 const prodAdminLink = "https://go.managedapp.com.au/admin"
-async function Env(app, command, ack, respond, log) {
+async function Env(client, command, ack, respond, log) {
     var cs = command.text.split(" ")
     await ack();
     if (cs.length == 2) {
@@ -13,12 +14,12 @@ async function Env(app, command, ack, respond, log) {
         if (target && (target === "uat" || target === "prod")) {
             var result = await runDeisReleasesList(target, log);
 
-            await respond(blockify(`Managed env \`${target}\` (${target=='uat'?uatAdminLink:prodAdminLink}) running version \`${result}\` `));
+            await respond(blockifyForChannel(`Managed env \`${target}\` (${target=='uat'?uatAdminLink:prodAdminLink}) running version \`${result}\` `));
             log.info(`'/minions ${command.text}' command executed for ${command.user_name} in channel ${command.channel_name}`);
             return result;
         } else {
             log.warn(`'/minions ${command.text}' command failed for ${command.user_name} in channel ${command.channel_name}`);
-            await respond(blockify(`'/minions ${command.text}' invalid, try 'uat' | 'prod' for env`));
+            await respond(blockifyForChannel(`'/minions ${command.text}' invalid, try 'uat' | 'prod' for env`));
         }
     } else if (cs.length == 4) {
         const target = cs[1];
@@ -29,13 +30,32 @@ async function Env(app, command, ack, respond, log) {
         }
         const version = cs[3];
 
-        await respond(blockify(`Beginning deployment for \`${target}\` env, version \`${version}\`. ETA ~7m.`));
+        attemptDeployToEnv(target, command.user_name, command.user_id, async () => {
+            await respond(blockifyForChannel(`Beginning deployment for \`${target}\` env, version \`${version}\`. ETA ~7m.`));
 
-        var result = await runSkipperDeploy(target, version, respond, log);
-        log.info(`'/minions ${command.text}' command executed for ${command.user_name} in channel ${command.channel_name}`);
+            var result = await runSkipperDeploy(target, version, respond, log);
+            log.info(`'/minions ${command.text}' command executed for ${command.user_name} in channel ${command.channel_name}`);
+
+            return result
+        })
+        .catch(error => {
+            if (error instanceof ConcurrentDeploymentError) {
+                messageCurrentDeployerAboutAttemptedDeployment(client, target, command.user_name)
+            }
+
+            respond(blockifyForChannel(error.message))
+        })
     } else {
         await Help(command, ack, respond, log);
     }
+}
+
+const messageCurrentDeployerAboutAttemptedDeployment = async (client, envName, attemptedDeployerName) => {
+    return client.chat.postMessage({
+        token: process.env.SLACK_BOT_TOKEN,
+        channel: global.deploymentState[envName]['actor']['id'],
+        blocks: blockify(`blocked ${attemptedDeployerName} from deploying to ${envName} while job is in progress.`)
+    })
 }
 
 async function runDeisReleasesList(target, log) {  //needed for ruby2.6.4
@@ -84,7 +104,7 @@ async function runSkipperDeploy(target, version, respond, log) {
 
     let logAndRespond = async (msg) => {
         log.info(msg);
-        await respond(blockify(msg));
+        await respond(blockifyForChannel(msg));
     }
     if (success) {
         await logAndRespond(`Deployment complete for \`${target}\` env , version \`${version}\`.`);

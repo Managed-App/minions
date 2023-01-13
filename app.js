@@ -5,6 +5,8 @@ const {Images} = require('./images.js');
 const {Help} = require('./help.js');
 const {Hello} = require("./hello");
 
+global.deploymentState = {}
+
 const app = new App({
     name: "Minions",
     token: process.env.SLACK_BOT_TOKEN,
@@ -17,11 +19,11 @@ const app = new App({
     port: process.env.PORT || 3000
 });
 
-app.command('/minions', async ({ command, ack, respond }) => {
+app.command('/minions', async ({ command, ack, respond, client }) => {
     var stem = command.text.split(" ")[0];
     switch (stem) {
         case "env":
-            await Env(app, command, ack, respond, app.logger);
+            await Env(client, command, ack, respond, app.logger);
             break;
         case "images":
             await Images(command, ack, respond, app.logger);
