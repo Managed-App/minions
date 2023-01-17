@@ -4,6 +4,7 @@ const {Env} = require('./env.js');
 const {Images} = require('./images.js');
 const {Help} = require('./help.js');
 const {Hello} = require("./hello");
+const { blockifyForChannel } = require('./minions.js');
 
 global.deploymentState = {}
 
@@ -20,6 +21,9 @@ const app = new App({
 });
 
 app.command('/minions', async ({ command, ack, respond, client }) => {
+    await ack()
+    await respond(blockifyForChannel(`Command run by ${command.user_name}: \`\`\`/minions ${command.text}\`\`\``))
+
     var stem = command.text.split(" ")[0];
     switch (stem) {
         case "env":
