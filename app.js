@@ -22,7 +22,7 @@ const app = new App({
 
 app.command('/minions', async ({ command, ack, respond, client }) => {
     await ack()
-    await respond(blockifyForChannel(`Command run by ${command.user_name}: \`\`\`/minions ${command.text}\`\`\``))
+    await respond(blockifyForChannel(`\`/minions ${command.text}\` [${command.user_name}]`))
 
     var stem = command.text.split(" ")[0];
     switch (stem) {
