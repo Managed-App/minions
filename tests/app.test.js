@@ -18,17 +18,25 @@ describe('integration tests', () => {
                 1,
                 expect.any(String),
                 {
-                    blocks: expect.arrayContaining(
-                        [
-                            {
-                                text: {
-                                    text: "`/minions hello` [USER]",
-                                    type: "mrkdwn"
-                                },
-                                type: "section"
-                            }
-                        ]
-                    ),
+                    blocks: [
+                        {
+                            text: {
+                                text: expect.any(String), // Random Sentence
+                                type: "mrkdwn"
+                            },
+                            type: "section"
+                        },
+                        {
+                            text: {
+                                text: "`/minions hello` [USER]",
+                                type: "mrkdwn"
+                            },
+                            type: "section"
+                        },
+                        {
+                            type: "divider"
+                        }
+                    ],
                     response_type: "in_channel"
                 }
             )
@@ -42,27 +50,28 @@ describe('integration tests', () => {
             expect(axios.post).toHaveBeenLastCalledWith(
                 expect.any(String),
                 {
-                    blocks: expect.arrayContaining(
-                        [
-                            {
-                                text: {
-                                    text: expect.any(String),
-                                    type: "mrkdwn"
-                                },
-                                type: "section"
+                    blocks: [
+                        {
+                            text: {
+                                text: expect.any(String),
+                                type: "mrkdwn"
                             },
-                            {
-                                type: "image",
-                                title: {
-                                    type: "plain_text",
-                                    text: "Bob"
-                                },
-                                block_id: "bob",
-                                image_url: "https://i0.wp.com/princetonbuffer.princeton.edu/wp-content/uploads/sites/185/2015/10/minions_2015-wide.jpg?resize=672%2C372&ssl=1",
-                                alt_text: "Bob"
+                            type: "section"
+                        },
+                        {
+                            type: "image",
+                            title: {
+                                type: "plain_text",
+                                text: "Bob"
                             },
-                        ]
-                    ),
+                            block_id: "bob",
+                            image_url: "https://i0.wp.com/princetonbuffer.princeton.edu/wp-content/uploads/sites/185/2015/10/minions_2015-wide.jpg?resize=672%2C372&ssl=1",
+                            alt_text: "Bob"
+                        },
+                        {
+                            type: "divider"
+                        }
+                    ],
                     response_type: "in_channel"
                 }
             )
