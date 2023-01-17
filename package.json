@@ -4,7 +4,7 @@
   "description": "ManagedApp SlackBot",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest"
   },
   "repository": {
     "type": "git",
@@ -16,5 +16,11 @@
     "@slack/bolt": "^3.12.2",
     "lodash": "^4.17.21",
     "octokit": "^2.0.10"
+  },
+  "devDependencies": {
+    "@slack-wrench/fixtures": "^2.2.4",
+    "@slack-wrench/jest-bolt-receiver": "^3.0.0",
+    "@slack-wrench/jest-mock-web-client": "^1.4.0",
+    "jest": "^29.3.1"
   }
 }
