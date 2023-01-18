@@ -1,7 +1,10 @@
-const {execSync} = require("child_process");
+const {exec} = require("child_process");
+const util = require('util')
 const {stripAnsi, wrapMarkdownCode} = require("./util");
 const {randomSentence} = require("./minions");
 const limit = 10;
+
+const execPromise = util.promisify(exec)
 
 async function Images(command, ack, respond, log) {
     var imgs = await runSkipperListImages(log);
@@ -78,7 +81,7 @@ async function Images(command, ack, respond, log) {
 
 async function runSkipperListImages(log) {
     let cmd = `${process.env.RUBY_HOME}/ruby bin/skipper images`;
-    var resp = execSync(cmd, {
+    var resp = await execPromise(cmd, {
         env: {
             ...process.env,
             PATH: process.env.RUBY_PATH + ":$PATH",
@@ -88,7 +91,7 @@ async function runSkipperListImages(log) {
         cwd: `${process.env.MANAGED_HOME}`,
     });
     log.debug(`os executed ${cmd}`);
-    resp = stripAnsi(resp.toString("utf8")).split("\n").sort(
+    resp = stripAnsi(resp.stdout.toString("utf8")).split("\n").sort(
         (a, b) => {
             if (a.split(" ")[1] > b.split(" ")[1]) {
                 return -11;
@@ -97,6 +100,7 @@ async function runSkipperListImages(log) {
             }
         }
     );
+    console.log(resp)
     log.info(`${resp.length} images found`);
     return resp;
 }
