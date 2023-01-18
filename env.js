@@ -18,7 +18,7 @@ async function Env(client, command, ack, respond, log) {
         if (target && (target === "uat" || target === "prod")) {
             var result = await runDeisReleasesList(target, log);
 
-            await respond(blockifyForChannel(`Managed env \`${target}\` (${target=='uat'?uatAdminLink:prodAdminLink}) running version \`${result}\` `));
+            await respond(blockifyForChannel(`Managed env \`${target}\` (${target=='uat'?uatAdminLink:prodAdminLink}) running version \`${result}\``));
             log.info(`'/minions ${command.text}' command executed for ${command.user_name} in channel ${command.channel_name}`);
             return result;
         } else {

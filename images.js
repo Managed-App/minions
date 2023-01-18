@@ -100,7 +100,6 @@ async function runSkipperListImages(log) {
             }
         }
     );
-    console.log(resp)
     log.info(`${resp.length} images found`);
     return resp;
 }
