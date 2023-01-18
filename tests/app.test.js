@@ -52,6 +52,49 @@ describe('integration tests', () => {
     const receiver = new JestReceiver()
     createMinionsApp(receiver)
 
+    test('should respond with help commands for invalid commad', async () => {
+        await receiver.send(slashCommand('/minions', { text: 'invalid command input' }))
+
+            const helpMenuText = [
+                "/minions env uat               show deployed version on uat.",
+                "/minions env prod              show deployed version on prod.",
+                "/minions env uat deploy vnnn   deploy verson vnnn to uat.",
+                "/minions env prod deploy vnnn  deploy verson vnnn to prod.",
+                "/minions tag vnnn              create image with tag vnnn on ECR.",
+                "/minions images                list recent images on ECR.",
+                "/minions images vnnn           filter for a specific image on ECR",
+                "/minions images latest         show the latest image on ECR",
+                "/minions hello                 bananas!",
+                "/minions help                  show this message."
+            ].join('\n')
+    
+            expect(axios.post).toHaveBeenLastCalledWith(
+                expect.any(String),
+                {
+                    blocks: [
+                        {
+                            text: {
+                                text: expect.any(String), // Random Sentence
+                                type: "mrkdwn"
+                            },
+                            type: "section"
+                        },
+                        {
+                            text: {
+                                text: `\`\`\`${helpMenuText}\`\`\``,
+                                type: "mrkdwn"
+                            },
+                            type: "section"
+                        },
+                        {
+                            type: "divider"
+                        }
+                    ],
+                    response_type: "in_channel"
+                }
+            )
+    })
+
     describe('should always respond to channel with the inputted command', () => {
         test('/minions hello', async () => {
             await receiver.send(slashCommand('/minions', { text: 'hello' }))
