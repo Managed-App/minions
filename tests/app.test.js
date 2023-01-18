@@ -55,44 +55,83 @@ describe('integration tests', () => {
     test('should respond with help commands for invalid commad', async () => {
         await receiver.send(slashCommand('/minions', { text: 'invalid command input' }))
 
-            const helpMenuText = [
-                "/minions env uat               show deployed version on uat.",
-                "/minions env prod              show deployed version on prod.",
-                "/minions env uat deploy vnnn   deploy verson vnnn to uat.",
-                "/minions env prod deploy vnnn  deploy verson vnnn to prod.",
-                "/minions tag vnnn              create image with tag vnnn on ECR.",
-                "/minions images                list recent images on ECR.",
-                "/minions images vnnn           filter for a specific image on ECR",
-                "/minions images latest         show the latest image on ECR",
-                "/minions hello                 bananas!",
-                "/minions help                  show this message."
-            ].join('\n')
-    
-            expect(axios.post).toHaveBeenLastCalledWith(
-                expect.any(String),
-                {
-                    blocks: [
-                        {
-                            text: {
-                                text: expect.any(String), // Random Sentence
-                                type: "mrkdwn"
-                            },
-                            type: "section"
+        const helpMenuText = [
+            "/minions env uat               show deployed version on uat.",
+            "/minions env prod              show deployed version on prod.",
+            "/minions env uat deploy vnnn   deploy verson vnnn to uat.",
+            "/minions env prod deploy vnnn  deploy verson vnnn to prod.",
+            "/minions tag vnnn              create image with tag vnnn on ECR.",
+            "/minions images                list recent images on ECR.",
+            "/minions images vnnn           filter for a specific image on ECR",
+            "/minions images latest         show the latest image on ECR",
+            "/minions hello                 bananas!",
+            "/minions help                  show this message."
+        ].join('\n')
+
+        expect(axios.post).toHaveBeenLastCalledWith(
+            expect.any(String),
+            {
+                blocks: [
+                    {
+                        text: {
+                            text: expect.any(String), // Random Sentence
+                            type: "mrkdwn"
                         },
-                        {
-                            text: {
-                                text: `\`\`\`${helpMenuText}\`\`\``,
-                                type: "mrkdwn"
-                            },
-                            type: "section"
+                        type: "section"
+                    },
+                    {
+                        text: {
+                            text: `\`\`\`${helpMenuText}\`\`\``,
+                            type: "mrkdwn"
                         },
-                        {
-                            type: "divider"
-                        }
-                    ],
-                    response_type: "in_channel"
-                }
-            )
+                        type: "section"
+                    },
+                    {
+                        type: "divider"
+                    }
+                ],
+                response_type: "in_channel"
+            }
+        )
+    })
+
+    test('should be able to run commands one after another', async () => {
+        receiver.send(slashCommand('/minions', { text: 'env uat deploy v650' }))
+        await receiver.send(slashCommand('/minions', { text: 'images' }))
+
+        expect(axios.post).toHaveBeenNthCalledWith(
+            4, // 1st is the command echo for deploy, 2nd is the deploy command starting, 3rd is the echo for the images command
+            expect.any(String),
+            {
+                blocks: expect.arrayContaining([
+                    {
+                        text: {
+                            "type": "mrkdwn",
+                            "text": "These are the most recent `1` images matching your filter"
+                        },
+                        type: "section"
+                    }
+                ]),
+                response_type: "in_channel"
+            }
+        )
+
+        // The success response from deploy command should still send
+        expect(axios.post).toHaveBeenLastCalledWith(
+            expect.any(String),
+            {
+                blocks: expect.arrayContaining([
+                    {
+                        text: {
+                            text: "Deployment complete for `uat` env , version `v650`.",
+                            type: "mrkdwn"
+                        },
+                        type: "section"
+                    },
+                ]),
+                response_type: "in_channel"
+            }
+        )
     })
 
     describe('should always respond to channel with the inputted command', () => {
