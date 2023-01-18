@@ -272,7 +272,7 @@ describe('integration tests', () => {
     })
 
     describe('/minions hello', () => {
-        test('should return correct blockified message', async () => {
+        test('should respond with correct blockified message', async () => {
             await receiver.send(slashCommand('/minions', { text: 'hello' }))
 
             expect(axios.post).toHaveBeenLastCalledWith(
@@ -308,7 +308,7 @@ describe('integration tests', () => {
 
     describe('/minions env', () => {
         describe('/minions env ENV', () => {
-            test('should return correct blockified message', async () => {
+            test('should respond with correct blockified message', async () => {
                 await receiver.send(slashCommand('/minions', { text: 'env uat' }))
     
                 expect(axios.post).toHaveBeenLastCalledWith(
@@ -340,7 +340,7 @@ describe('integration tests', () => {
         })
 
         describe('/minions env ENV deploy vNNN', () => {
-            test('should return correct blockified message when deployment starts', async () => {
+            test('should respond with correct blockified message when deployment starts', async () => {
                 await receiver.send(slashCommand('/minions', { text: 'env uat deploy v650' }))
 
                 expect(axios.post).toHaveBeenNthCalledWith(
@@ -370,6 +370,75 @@ describe('integration tests', () => {
                     }
                 )
             })
+
+            test('should respond with correct blockified message when deployment completes', async () => {
+                await receiver.send(slashCommand('/minions', { text: 'env uat deploy v650' }))
+
+                expect(axios.post).toHaveBeenLastCalledWith(
+                    expect.any(String),
+                    {
+                        blocks: [
+                            {
+                                text: {
+                                    text: expect.any(String),
+                                    type: "mrkdwn"
+                                },
+                                type: "section"
+                            },
+                            {
+                                text: {
+                                    text: "Deployment complete for `uat` env , version `v650`.",
+                                    type: "mrkdwn"
+                                },
+                                type: "section"
+                            },
+                            {
+                                type: "divider"
+                            }
+                        ],
+                        response_type: "in_channel"
+                    }
+                )
+            })
+        })
+    })
+
+    describe('/minions images', () => {
+        test('should respond with correct blockified message', async () => {
+            await receiver.send(slashCommand('/minions', { text: 'images' }))
+
+            expect(axios.post).toHaveBeenLastCalledWith(
+                expect.any(String),
+                {
+                    blocks: [
+                        {
+                            text: {
+                                text: expect.any(String),
+                                type: "mrkdwn"
+                            },
+                            type: "section"
+                        },
+                        {
+                            text: {
+                                "type": "mrkdwn",
+                                "text": "These are the most recent `1` images matching your filter"
+                            },
+                            type: "section"
+                        },
+                        {
+                            text: {
+                                text: "`v650,f709b4ae79bba`, hash `b60f5badcbbe6`",
+                                type: "mrkdwn"
+                            },
+                            type: "section"
+                        },
+                        {
+                            type: "divider"
+                        }
+                    ],
+                    response_type: "in_channel"
+                }
+            )
         })
     })
 })
