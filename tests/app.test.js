@@ -482,6 +482,65 @@ describe('integration tests', () => {
                     }
                 )
             })
+
+            test('should block deployment to same environment when another deployment is in progress', async () => {
+                receiver.send(slashCommand('/minions', { text: 'env uat deploy v650' }))
+                await receiver.send(slashCommand('/minions', { text: 'env uat deploy v650' }))
+
+                expect(axios.post).toHaveBeenNthCalledWith(
+                    4, // 1st and 2nd are command echoes to channel, 3rd is the first deployment starting
+                    expect.any(String),
+                    {
+                        blocks: [
+                            {
+                                text: {
+                                    text: expect.any(String),
+                                    type: "mrkdwn"
+                                },
+                                type: "section"
+                            },
+                            {
+                                text: {
+                                    text: "Env `uat` deployment triggered by `USER` is in progress, please try again later.",
+                                    type: "mrkdwn"
+                                },
+                                type: "section"
+                            },
+                            {
+                                type: "divider"
+                            }
+                        ],
+                        response_type: "in_channel"
+                    }
+                )
+
+                // the first deployment should still complete
+                expect(axios.post).toHaveBeenLastCalledWith(
+                    expect.any(String),
+                    {
+                        blocks: [
+                            {
+                                text: {
+                                    text: expect.any(String),
+                                    type: "mrkdwn"
+                                },
+                                type: "section"
+                            },
+                            {
+                                text: {
+                                    text: "Deployment complete for `uat` env , version `v650`.",
+                                    type: "mrkdwn"
+                                },
+                                type: "section"
+                            },
+                            {
+                                type: "divider"
+                            }
+                        ],
+                        response_type: "in_channel"
+                    }
+                )
+            })
         })
     })
 

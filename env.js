@@ -1,6 +1,7 @@
 const {exec} = require("child_process");
 const util = require('util')
-const {stripAnsi, wait, attemptDeployToEnv} = require("./util");
+const {stripAnsi, wait} = require("./util");
+const { attemptDeployToEnv } = require('./helpers')
 const { ConcurrentDeploymentError } = require('./errors');
 const {blockify, blockifyForChannel} = require("./minions");
 const {Help} = require("./help");
