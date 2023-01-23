@@ -37,7 +37,7 @@ workflows:
           filters:
             branches:
                only: dev
-      - dev-deploy:
+      - prod-deploy:
           requires:
             - node/test
           filters:
