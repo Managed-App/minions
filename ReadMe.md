@@ -29,3 +29,6 @@ process in a Slackbot
 /minions env uat
 /minions env prod
 ```
+
+## Deployment
+The app runs on [CircleCI](https://circleci.com/) for CI/CD. The deployment is triggered by changes pushed into either the `master` branch or `dev` branch and will run the tests then deploy the changes into their respective environments.
