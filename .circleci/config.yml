@@ -6,15 +6,6 @@ orbs:
   node: circleci/node@4.7
 
 jobs:
-  test:
-    executor: node/default
-    steps:
-      - checkout
-      - node/install-packages:
-          pkg-manager: npm
-      - run:
-          command: npm run test
-          name: Run tests
   dev-deploy:
     docker:
       - image: node:10
@@ -27,10 +18,12 @@ jobs:
 workflows:
   test_and_deploy: 
     jobs:
-      - test
+      - node/test:
+          version: '16.10'
+          pkg-manager: npm
       - dev-deploy:
           requires:
-            - test
+            - node/test
           filters:
             branches:
                only: dev
