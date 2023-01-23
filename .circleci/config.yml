@@ -14,6 +14,14 @@ jobs:
           name: Deploy Over SSH
           command: |
             ssh $SSH_USER@$SSH_HOST "cd minions-dev && git pull origin dev && npm install && pkill -f node nodejs && source .envrc && nohup node index.js 2>&1 > out.log & exit"
+  prod-deploy:
+    docker:
+      - image: node:10
+    steps:
+      - run:
+          name: Deploy Over SSH
+          command: |
+            ssh $SSH_USER@$SSH_HOST "cd minions && git pull origin master && npm install && pkill -f node nodejs && source .envrc && nohup node index.js 2>&1 > out.log & exit"
 
 workflows:
   test_and_deploy: 
@@ -27,3 +35,9 @@ workflows:
           filters:
             branches:
                only: dev
+      - dev-deploy:
+          requires:
+            - node/test
+          filters:
+            branches:
+               only: master
