@@ -5,14 +5,24 @@ version: 2.1
 orbs:
   node: circleci/node@4.7
 
-# Invoke jobs via workflows
-# See: https://circleci.com/docs/2.0/configuration-reference/#workflows
+jobs:
+    deploy:
+      machine:
+        enabled: true
+      steps:
+        - run:
+          name: Deploy Over SSH
+          command: |
+            ssh $SSH_USER@$SSH_HOST "cd minions-dev && git pull origin dev && npm install && pkill -f node nodejs && source .envrc && nohup node index.js 2>&1 > out.log & exit"
+
 workflows:
   test: 
     jobs:
       - node/test:
-          # This is the node version to use for the `cimg/node` tag
-          # Relevant tags can be found on the CircleCI Developer Hub
-          # https://circleci.com/developer/images/image/cimg/node
-          version: '16.10'
-          pkg-manager: npm
+        version: '14.2'
+        pkg-manager: npm
+      - deploy:
+        requires:
+          - node/test
+        branches:
+          only: dev
