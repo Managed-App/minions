@@ -13,7 +13,7 @@ jobs:
     steps:
       - add_ssh_keys:
           fingerprints:
-            - 38:e1:c7:07:87:8d:7d:0f:85:55:d3:06:73:c7:e6:1a
+            - $SSH_KEY_FINGERPRINT
       - run: ssh-keyscan $SSH_HOST >> ~/.ssh/known_hosts
       - run:
           name: Deploy Over SSH
@@ -24,6 +24,10 @@ jobs:
     docker:
       - image: node:10
     steps:
+      - add_ssh_keys:
+          fingerprints:
+            - $SSH_KEY_FINGERPRINT
+      - run: ssh-keyscan $SSH_HOST >> ~/.ssh/known_hosts
       - run:
           name: Deploy Over SSH
           command: |
