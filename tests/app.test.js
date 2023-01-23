@@ -1,6 +1,7 @@
 const { when } = require('jest-when')
 const axios = require('axios')
 const child_process = require('child_process')
+const util = require('util')
 const { createMinionsApp } = require('../app')
 const { slashCommand } = require('@slack-wrench/fixtures')
 const JestReceiver = require('@slack-wrench/jest-bolt-receiver').default
@@ -529,6 +530,71 @@ describe('integration tests', () => {
                             {
                                 text: {
                                     text: "Deployment complete for `uat` env , version `v650`.",
+                                    type: "mrkdwn"
+                                },
+                                type: "section"
+                            },
+                            {
+                                type: "divider"
+                            }
+                        ],
+                        response_type: "in_channel"
+                    }
+                )
+            })
+
+            test('should respond with correct blockified message when skipper deploy throws a ReadTimeout error', async () => {
+                when(child_process.exec).calledWith(expect.stringContaining('bin/skipper deploy'), expect.anything(), expect.anything()).mockImplementation((_command, _vars, callback) => 
+                    callback(new Error('ReadTimeout'), null, { stderr: 'ReadTimeout' })
+                )
+                const promisifySpy = jest.spyOn(util, 'promisify')
+
+                await receiver.send(slashCommand('/minions', { text: 'env uat deploy v650' }))
+
+                expect(promisifySpy).toThrowError()
+
+                expect(axios.post).toHaveBeenNthCalledWith(
+                    2,
+                    expect.any(String),
+                    {
+                        blocks: [
+                            {
+                                text: {
+                                    text: expect.any(String),
+                                    type: "mrkdwn"
+                                },
+                                type: "section"
+                            },
+                            {
+                                text: {
+                                    text: "Beginning deployment for `uat` env, version `v650`. ETA ~7m.",
+                                    type: "mrkdwn"
+                                },
+                                type: "section"
+                            },
+                            {
+                                type: "divider"
+                            }
+                        ],
+                        response_type: "in_channel"
+                    }
+                )
+
+                // Skipper throws an error mid deployment
+                expect(axios.post).toHaveBeenLastCalledWith(
+                    expect.any(String),
+                    {
+                        blocks: [
+                            {
+                                text: {
+                                    text: expect.any(String),
+                                    type: "mrkdwn"
+                                },
+                                type: "section"
+                            },
+                            {
+                                text: {
+                                    text: "An unexpected error occurred: `Error: ReadTimeout`",
                                     type: "mrkdwn"
                                 },
                                 type: "section"
