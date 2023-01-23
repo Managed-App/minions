@@ -5,4 +5,11 @@ class ConcurrentDeploymentError extends Error {
     }
 }
 
-module.exports = {ConcurrentDeploymentError};
+class DeploymentIncompleteError extends Error {
+    constructor (mesage) {
+        super(mesage)
+        this.name = 'DeploymentIncompleteError'
+    }
+}
+
+module.exports = {ConcurrentDeploymentError, DeploymentIncompleteError};

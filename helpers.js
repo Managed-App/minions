@@ -9,9 +9,9 @@ const attemptDeployToEnv = async (envName, actorSlackName, actorSlackId, deploym
         global.setCurrentDeployment(envName, actorSlackId, actorSlackName)
 
         deploymentPromiseCallback()
-            .then(() => global.unsetCurrentDeployment(envName))
             .then(() => resolve())
             .catch((error) => reject(new Error(error)))
+            .finally(() => global.unsetCurrentDeployment(envName))
     })
 }
 

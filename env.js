@@ -2,7 +2,7 @@ const {exec} = require("child_process");
 const util = require('util')
 const {stripAnsi, wait} = require("./util");
 const { attemptDeployToEnv } = require('./helpers')
-const { ConcurrentDeploymentError } = require('./errors');
+const { ConcurrentDeploymentError, DeploymentIncompleteError } = require('./errors');
 const {blockify, blockifyForChannel} = require("./minions");
 const {Help} = require("./help");
 const uatAdminLink = "https://managed-uat.man.redant.com.au/admin";
@@ -40,7 +40,11 @@ async function Env(client, command, ack, respond, log) {
                 .then(() => runSkipperDeploy(target, version, respond, log))
                 .then(() => log.info(`'/minions ${command.text}' command executed for ${command.user_name} in channel ${command.channel_name}`))
         )
-        .catch(error => {
+        .catch(async error => {
+            if (Object.getPrototypeOf(error) === Error.prototype) {
+                return respond(blockifyForChannel(`An unexpected error occurred: \`${error.message}\``))
+            }
+
             if (error instanceof ConcurrentDeploymentError) {
                 messageCurrentDeployerAboutAttemptedDeployment(client, target, command.user_name)
             }
@@ -80,7 +84,7 @@ async function runDeisReleasesList(target, log) {  //needed for ruby2.6.4
 }
 
 async function runSkipperDeploy(target, version, respond, log) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
         const command = `${process.env.RUBY_HOME}/ruby bin/skipper deploy managed:${version} --group managed-${target}`;
         execPromise(command, {
             env: {
@@ -108,19 +112,20 @@ async function runSkipperDeploy(target, version, respond, log) {
                 return isSuccess
             })
             .then(async isSuccess => {
-                let logAndRespond = async (msg) => {
-                    log.info(msg);
-                    await respond(blockifyForChannel(msg));
-                }
+                log.info(`Deployment for ${target}, version ${version} is ${isSuccess ? 'complete' : 'incomplete'}`)
+
                 if (isSuccess) {
-                    await logAndRespond(`Deployment complete for \`${target}\` env , version \`${version}\`.`);
+                    await respond(blockifyForChannel(`Deployment complete for \`${target}\` env , version \`${version}\`.`))
                 } else {
-                    await logAndRespond(`Uh oh, deployment incomplete for \`${target}\` env , version \`${version}\`. Check results with \`/minions env\``);
+                    throw new DeploymentIncompleteError(`Uh oh, deployment incomplete for \`${target}\` env , version \`${version}\`. Check results with \`/minions env\``)
                 }
 
                 return isSuccess
             })
             .then(isSuccess => resolve(isSuccess))
+            .catch(error => {
+                reject(error)
+            })
     })
 }
 
