@@ -4,10 +4,12 @@ const child_process = require('child_process')
 const util = require('util')
 const { createMinionsApp } = require('../app')
 const { slashCommand } = require('@slack-wrench/fixtures')
+const FakeTimers = require("@sinonjs/fake-timers")
 const JestReceiver = require('@slack-wrench/jest-bolt-receiver').default
 
 jest.mock('axios')
 jest.mock('child_process')
+const clock = FakeTimers.install()
 
 axios.create.mockReturnValue(axios) // mock axios to intercept calls to Slack
 // mocks for skipper and deis commands
@@ -543,69 +545,179 @@ describe('integration tests', () => {
                 )
             })
 
-            test('should respond with correct blockified message when skipper deploy throws a ReadTimeout error', async () => {
-                when(child_process.exec).calledWith(expect.stringContaining('bin/skipper deploy'), expect.anything(), expect.anything()).mockImplementation((_command, _vars, callback) => 
-                    callback(new Error('ReadTimeout'), null, { stderr: 'ReadTimeout' })
-                )
-                const promisifySpy = jest.spyOn(util, 'promisify')
+            describe('when Skipper returns a Timeout error', () => {
+                test('should confirm if the deployment still went through and respond with correct blockified message when the deployment succeeded', async () => {
+                    when(child_process.exec).calledWith(expect.stringContaining('bin/skipper deploy'), expect.anything(), expect.anything()).mockImplementation((_command, _vars, callback) => 
+                        callback(new Error('ReadTimeout'), null, { stderr: 'ReadTimeout' })
+                    )
+                    // mock first 2 calls to releases to not include the expected version (v650)
+                    when(child_process.exec).calledWith(expect.stringContaining('bin/deis releases:list'), expect.anything(), expect.anything())
+                        .mockImplementationOnce((_command, _vars, callback) =>
+                            callback(null, {
+                                stdout: `
+                                    === managed-uat Releases (6 of 498)
+                                    v497    2023-01-17T01:55:19Z    USER deployed fake-ecr.aws.com/managed:v649
+                                    v496    2023-01-16T04:53:29Z    USER deployed fake-ecr.aws.com/managed:v647
+                                    v495    2023-01-16T04:28:01Z    USER deployed fake-ecr.aws.com/managed:v647
+                                    v494    2023-01-16T04:00:57Z    USER deployed fake-ecr.aws.com/managed:v646
+                                    v493    2023-01-16T03:58:54Z    USER deployed fake-ecr.aws.com/managed:v646
+                                `
+                            })
+                        )
+                        .mockImplementationOnce((_command, _vars, callback) =>
+                            callback(null, {
+                                stdout: `
+                                    === managed-uat Releases (6 of 498)
+                                    v497    2023-01-17T01:55:19Z    USER deployed fake-ecr.aws.com/managed:v649
+                                    v496    2023-01-16T04:53:29Z    USER deployed fake-ecr.aws.com/managed:v647
+                                    v495    2023-01-16T04:28:01Z    USER deployed fake-ecr.aws.com/managed:v647
+                                    v494    2023-01-16T04:00:57Z    USER deployed fake-ecr.aws.com/managed:v646
+                                    v493    2023-01-16T03:58:54Z    USER deployed fake-ecr.aws.com/managed:v646
+                                `
+                            })
+                        )
+                    const promisifySpy = jest.spyOn(util, 'promisify')
 
-                await receiver.send(slashCommand('/minions', { text: 'env uat deploy v650' }))
+                    receiver.send(slashCommand('/minions', { text: 'env uat deploy v650' }))
+                    await clock.runAllAsync()
 
-                expect(promisifySpy).toThrowError()
+                    expect(promisifySpy).toThrowError()
 
-                expect(axios.post).toHaveBeenNthCalledWith(
-                    2,
-                    expect.any(String),
-                    {
-                        blocks: [
-                            {
-                                text: {
-                                    text: expect.any(String),
-                                    type: "mrkdwn"
+                    // should respond that we're checking if the deployment went through
+                    expect(axios.post).toHaveBeenNthCalledWith(
+                        3,
+                        expect.any(String),
+                        {
+                            blocks: [
+                                {
+                                    text: {
+                                        text: expect.any(String),
+                                        type: "mrkdwn"
+                                    },
+                                    type: "section"
                                 },
-                                type: "section"
-                            },
-                            {
-                                text: {
-                                    text: "Beginning deployment for `uat` env, version `v650`. ETA ~7m.",
-                                    type: "mrkdwn"
+                                {
+                                    text: {
+                                        text: "Confirming version `v650` deployment in `uat` env.",
+                                        type: "mrkdwn"
+                                    },
+                                    type: "section"
                                 },
-                                type: "section"
-                            },
-                            {
-                                type: "divider"
-                            }
-                        ],
-                        response_type: "in_channel"
-                    }
-                )
+                                {
+                                    type: "divider"
+                                }
+                            ],
+                            response_type: "in_channel"
+                        }
+                    )
 
-                // Skipper throws an error mid deployment
-                expect(axios.post).toHaveBeenLastCalledWith(
-                    expect.any(String),
-                    {
-                        blocks: [
-                            {
-                                text: {
-                                    text: expect.any(String),
-                                    type: "mrkdwn"
+                    // should send out success message after confirming in releases
+                    expect(axios.post).toHaveBeenLastCalledWith(
+                        expect.any(String),
+                        {
+                            blocks: [
+                                {
+                                    text: {
+                                        text: expect.any(String),
+                                        type: "mrkdwn"
+                                    },
+                                    type: "section"
                                 },
-                                type: "section"
-                            },
-                            {
-                                text: {
-                                    text: "An unexpected error occurred: `Error: ReadTimeout`",
-                                    type: "mrkdwn"
+                                {
+                                    text: {
+                                        text: "Deployment complete for `uat` env , version `v650`.",
+                                        type: "mrkdwn"
+                                    },
+                                    type: "section"
                                 },
-                                type: "section"
-                            },
-                            {
-                                type: "divider"
-                            }
-                        ],
-                        response_type: "in_channel"
-                    }
-                )
+                                {
+                                    type: "divider"
+                                }
+                            ],
+                            response_type: "in_channel"
+                        }
+                    )
+                })
+
+                test('should confirm if the deployment still went through and respond with correct blockified message when the deployment failed', async () => {
+                    when(child_process.exec).calledWith(expect.stringContaining('bin/skipper deploy'), expect.anything(), expect.anything()).mockImplementation((_command, _vars, callback) => 
+                        callback(new Error('ReadTimeout'), null, { stderr: 'ReadTimeout' })
+                    )
+                    // mock releases to never include the expected version
+                    when(child_process.exec).calledWith(expect.stringContaining('bin/deis releases:list'), expect.anything(), expect.anything()).mockImplementation((_command, _vars, callback) =>
+                        callback(null, {
+                            stdout: `
+                                === managed-uat Releases (6 of 498)
+                                v497    2023-01-17T01:55:19Z    USER deployed fake-ecr.aws.com/managed:v649
+                                v496    2023-01-16T04:53:29Z    USER deployed fake-ecr.aws.com/managed:v647
+                                v495    2023-01-16T04:28:01Z    USER deployed fake-ecr.aws.com/managed:v647
+                                v494    2023-01-16T04:00:57Z    USER deployed fake-ecr.aws.com/managed:v646
+                                v493    2023-01-16T03:58:54Z    USER deployed fake-ecr.aws.com/managed:v646
+                            `
+                        })
+                    )
+                    const promisifySpy = jest.spyOn(util, 'promisify')
+
+                    receiver.send(slashCommand('/minions', { text: 'env uat deploy v650' }))
+                    await clock.runAllAsync()
+
+                    expect(promisifySpy).toThrowError()
+
+                    // should respond that we're checking if the deployment went through
+                    expect(axios.post).toHaveBeenNthCalledWith(
+                        3,
+                        expect.any(String),
+                        {
+                            blocks: [
+                                {
+                                    text: {
+                                        text: expect.any(String),
+                                        type: "mrkdwn"
+                                    },
+                                    type: "section"
+                                },
+                                {
+                                    text: {
+                                        text: "Confirming version `v650` deployment in `uat` env.",
+                                        type: "mrkdwn"
+                                    },
+                                    type: "section"
+                                },
+                                {
+                                    type: "divider"
+                                }
+                            ],
+                            response_type: "in_channel"
+                        }
+                    )
+
+                    // should send out failure message after checking in releases
+                    expect(axios.post).toHaveBeenLastCalledWith(
+                        expect.any(String),
+                        {
+                            blocks: [
+                                {
+                                    text: {
+                                        text: expect.any(String),
+                                        type: "mrkdwn"
+                                    },
+                                    type: "section"
+                                },
+                                {
+                                    text: {
+                                        text: "Deployment failed for `uat` env , version `v650`.",
+                                        type: "mrkdwn"
+                                    },
+                                    type: "section"
+                                },
+                                {
+                                    type: "divider"
+                                }
+                            ],
+                            response_type: "in_channel"
+                        }
+                    )
+                })
             })
         })
     })
