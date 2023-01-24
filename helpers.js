@@ -20,6 +20,25 @@ const attemptDeployToEnv = async (envName, actorSlackName, actorSlackId, deploym
     })
 }
 
+const checkVersionFromReleasesForAPeriod = async (expectedVersion, envName, timeInMilliseconds, logger) => {
+    return new Promise(async (resolve, reject) => {
+        setTimeout(() => resolve({ isReleased: false }), timeInMilliseconds)
+
+        let isSuccess = false
+
+        for (let i = 0; i < 100; i++) {
+            const deployedVersion = await runDeisReleasesList(envName, logger).catch(reject)
+            if (deployedVersion === expectedVersion) {
+                isSuccess = true
+                break
+            }
+            await wait(3000)
+        }
+
+        resolve({ isReleased: isSuccess })
+    })
+}
+
 const runDeisReleasesList = async (target, log) => {  //needed for ruby2.6.4
     const command = `${process.env.DEIS_HOME}/deis releases:list -a managed-${target}`;
     const stdout = await execPromise(command, {
@@ -39,4 +58,4 @@ const runDeisReleasesList = async (target, log) => {  //needed for ruby2.6.4
     return version;
 }
 
-module.exports = { attemptDeployToEnv, runDeisReleasesList }
+module.exports = { attemptDeployToEnv, checkVersionFromReleasesForAPeriod, runDeisReleasesList }

@@ -35,21 +35,31 @@ async function Env(client, command, ack, respond, log) {
         }
         const version = cs[3];
 
-        attemptDeployToEnv(target, command.user_name, command.user_id, async () =>
+        await attemptDeployToEnv(target, command.user_name, command.user_id, async () =>
             respond(blockifyForChannel(`Beginning deployment for \`${target}\` env, version \`${version}\`. ETA ~7m.`))
                 .then(() => runSkipperDeploy(target, version, respond, log))
                 .then(() => log.info(`'/minions ${command.text}' command executed for ${command.user_name} in channel ${command.channel_name}`))
+                .catch(async error => {
+                    // Catch error from socket timeout from the Skipper gem. Check if deployment still went through
+                    if (error.message.includes('Net::ReadTimeout')) {
+                        await respond(blockifyForChannel(`Confirming version \`${version}\` deployment in \`${target}\` env. Please wait.`))
+                        return checkVersionFromReleasesForAPeriod(version, target, 600000, log)
+                                .then(async ({ isReleased }) =>
+                                    await respond(blockifyForChannel(`Deployment ${isReleased ? 'complete' : 'failed'} for \`${target}\` env , version \`${version}\`.`))
+                                )
+                    }
+                })
         )
         .catch(async error => {
-            if (Object.getPrototypeOf(error) === Error.prototype) {
-                return respond(blockifyForChannel(`An unexpected error occurred: \`${error.message}\``))
-            }
-
             if (error instanceof ConcurrentDeploymentError) {
                 messageCurrentDeployerAboutAttemptedDeployment(client, target, command.user_name)
+                respond(blockifyForChannel(error.message))
+            } else if (error instanceof DeploymentIncompleteError) {
+                respond(blockifyForChannel(error.message))
+            } else {
+                respond(blockifyForChannel('An unexpected error occurred.'))
+                log.error(error)
             }
-
-            respond(blockifyForChannel(error.message))
         })
     } else {
         await Help(command, ack, respond, log);
@@ -103,10 +113,8 @@ async function runSkipperDeploy(target, version, respond, log) {
 
                 return isSuccess
             })
-            .then(isSuccess => resolve(isSuccess))
-            .catch(error => {
-                reject(error)
-            })
+            .then(resolve)
+            .catch(reject)
     })
 }
 
