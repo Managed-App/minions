@@ -548,7 +548,7 @@ describe('integration tests', () => {
             describe('when Skipper returns a Timeout error', () => {
                 test('should confirm if the deployment still went through and respond with correct blockified message when the deployment succeeded', async () => {
                     when(child_process.exec).calledWith(expect.stringContaining('bin/skipper deploy'), expect.anything(), expect.anything()).mockImplementation((_command, _vars, callback) => 
-                        callback(new Error('ReadTimeout'), null, { stderr: 'ReadTimeout' })
+                        callback(new Error('Net::ReadTimeout'), null, { stderr: 'Net::ReadTimeout' })
                     )
                     // mock first 2 calls to releases to not include the expected version (v650)
                     when(child_process.exec).calledWith(expect.stringContaining('bin/deis releases:list'), expect.anything(), expect.anything())
@@ -598,7 +598,7 @@ describe('integration tests', () => {
                                 },
                                 {
                                     text: {
-                                        text: "Confirming version `v650` deployment in `uat` env.",
+                                        text: "Confirming version `v650` deployment in `uat` env. Please wait.",
                                         type: "mrkdwn"
                                     },
                                     type: "section"
@@ -641,7 +641,7 @@ describe('integration tests', () => {
 
                 test('should confirm if the deployment still went through and respond with correct blockified message when the deployment failed', async () => {
                     when(child_process.exec).calledWith(expect.stringContaining('bin/skipper deploy'), expect.anything(), expect.anything()).mockImplementation((_command, _vars, callback) => 
-                        callback(new Error('ReadTimeout'), null, { stderr: 'ReadTimeout' })
+                        callback(new Error('Net::ReadTimeout'), null, { stderr: 'Net::ReadTimeout' })
                     )
                     // mock releases to never include the expected version
                     when(child_process.exec).calledWith(expect.stringContaining('bin/deis releases:list'), expect.anything(), expect.anything()).mockImplementation((_command, _vars, callback) =>
@@ -678,7 +678,7 @@ describe('integration tests', () => {
                                 },
                                 {
                                     text: {
-                                        text: "Confirming version `v650` deployment in `uat` env.",
+                                        text: "Confirming version `v650` deployment in `uat` env. Please wait.",
                                         type: "mrkdwn"
                                     },
                                     type: "section"
