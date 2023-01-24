@@ -19,6 +19,7 @@
     "octokit": "^2.0.10"
   },
   "devDependencies": {
+    "@sinonjs/fake-timers": "^10.0.2",
     "@slack-wrench/fixtures": "^2.2.4",
     "@slack-wrench/jest-bolt-receiver": "^3.0.0",
     "@slack-wrench/jest-mock-web-client": "^1.4.0",
@@ -26,6 +27,8 @@
     "jest-when": "^3.5.2"
   },
   "jest": {
-    "setupFiles": ["<rootDir>/jestSetup.js"]
+    "setupFiles": [
+      "<rootDir>/jestSetup.js"
+    ]
   }
 }
