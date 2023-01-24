@@ -1,7 +1,7 @@
 const {exec} = require("child_process");
 const util = require('util')
-const {stripAnsi, wait} = require("./util");
-const { attemptDeployToEnv } = require('./helpers')
+const { wait } = require("./util");
+const { attemptDeployToEnv, checkVersionFromReleasesForAPeriod, runDeisReleasesList } = require('./helpers')
 const { ConcurrentDeploymentError, DeploymentIncompleteError } = require('./errors');
 const {blockify, blockifyForChannel} = require("./minions");
 const {Help} = require("./help");
@@ -62,25 +62,6 @@ const messageCurrentDeployerAboutAttemptedDeployment = async (client, envName, a
         channel: global.deploymentState[envName]['actor']['id'],
         blocks: blockify(`blocked ${attemptedDeployerName} from deploying to ${envName} while job is in progress.`)
     })
-}
-
-async function runDeisReleasesList(target, log) {  //needed for ruby2.6.4
-    const command = `${process.env.DEIS_HOME}/deis releases:list -a managed-${target}`;
-    const stdout = await execPromise(command, {
-        env: {
-            ...process.env,
-            PATH: process.env.RUBY_PATH + ":$PATH",
-            GEM_PATH: process.env.GEM_PATH,
-            GEM_HOME: process.env.GEM_HOME,
-        },
-        cwd: `${process.env.MANAGED_HOME}`,
-    }).then(res => res.stdout);
-    log.debug(`os executed ${command}`);
-    var depls = stripAnsi(stdout.toString("utf8")).split("\n");
-    depls = depls.filter((line) => line.includes("deployed"));
-    const version = depls[0].slice(depls[0].lastIndexOf(":") + 1);
-    log.info(`env ${target} running version ${version}`);
-    return version;
 }
 
 async function runSkipperDeploy(target, version, respond, log) {
