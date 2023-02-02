@@ -41,7 +41,7 @@ async function Env(client, command, ack, respond, log) {
                 .then(() => log.info(`'/minions ${command.text}' command executed for ${command.user_name} in channel ${command.channel_name}`))
                 .catch(async error => {
                     // Catch error from socket timeout from the Skipper gem. Check if deployment still went through
-                    if (error.message.includes('Net::ReadTimeout')) {
+                    if (error.message.includes('Command failed')) {
                         await respond(blockifyForChannel(`Confirming version \`${version}\` deployment in \`${target}\` env. Please wait.`))
                         return checkVersionFromReleasesForAPeriod(version, target, 600000, log)
                                 .then(async ({ isReleased }) =>
