@@ -18,7 +18,7 @@ jobs:
       - run:
           name: Deploy Over SSH
           command: |
-            ssh $SSH_USER@$SSH_HOST "cd minions-dev && git pull origin dev && npm install && pkill -f node nodejs && source .envrc && nohup node index.js 2>&1 > out.log & exit"
+            ssh $SSH_USER@$SSH_HOST "cd minions-dev && git checkout dev && git pull origin dev && npm install && pkill -f node nodejs && source .envrc && nohup node index.js 2>&1 > out.log & exit"
   prod-deploy:
     circleci_ip_ranges: true
     docker:
