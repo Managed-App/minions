@@ -548,7 +548,11 @@ describe('integration tests', () => {
             describe('when Skipper returns a Timeout error', () => {
                 test('should confirm if the deployment still went through and respond with correct blockified message when the deployment succeeded', async () => {
                     when(child_process.exec).calledWith(expect.stringContaining('bin/skipper deploy'), expect.anything(), expect.anything()).mockImplementation((_command, _vars, callback) => 
-                        callback(new Error('Net::ReadTimeout'), null, { stderr: 'Net::ReadTimeout' })
+                        callback(
+                            new Error('Error: Command failed: ruby bin/skipper deploy managed:v650 --group managed-prod'),
+                            null,
+                            { stderr: 'Error: Command failed: ruby bin/skipper deploy managed:v650 --group managed-prod' }
+                        )
                     )
                     // mock first 2 calls to releases to not include the expected version (v650)
                     when(child_process.exec).calledWith(expect.stringContaining('bin/deis releases:list'), expect.anything(), expect.anything())
@@ -641,7 +645,11 @@ describe('integration tests', () => {
 
                 test('should confirm if the deployment still went through and respond with correct blockified message when the deployment failed', async () => {
                     when(child_process.exec).calledWith(expect.stringContaining('bin/skipper deploy'), expect.anything(), expect.anything()).mockImplementation((_command, _vars, callback) => 
-                        callback(new Error('Net::ReadTimeout'), null, { stderr: 'Net::ReadTimeout' })
+                        callback(
+                            new Error('Error: Command failed: ruby bin/skipper deploy managed:v650 --group managed-prod'),
+                            null,
+                            { stderr: 'Error: Command failed: ruby bin/skipper deploy managed:v650 --group managed-prod' }
+                        )
                     )
                     // mock releases to never include the expected version
                     when(child_process.exec).calledWith(expect.stringContaining('bin/deis releases:list'), expect.anything(), expect.anything()).mockImplementation((_command, _vars, callback) =>
