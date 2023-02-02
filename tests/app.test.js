@@ -726,6 +726,159 @@ describe('integration tests', () => {
                         }
                     )
                 })
+
+                test('should be able to send another deploy command when deploy has failed', async () => {
+                    when(child_process.exec).calledWith(expect.stringContaining('bin/skipper deploy'), expect.anything(), expect.anything()).mockImplementationOnce((_command, _vars, callback) => 
+                        callback(
+                            new Error('Error: Command failed: ruby bin/skipper deploy managed:v650 --group managed-prod'),
+                            null,
+                            { stderr: 'Error: Command failed: ruby bin/skipper deploy managed:v650 --group managed-prod' }
+                        )
+                    )
+                    // mock releases to never include the expected version
+                    when(child_process.exec).calledWith(expect.stringContaining('bin/deis releases:list'), expect.anything(), expect.anything()).mockImplementation((_command, _vars, callback) =>
+                        callback(null, {
+                            stdout: `
+                                === managed-uat Releases (6 of 498)
+                                v497    2023-01-17T01:55:19Z    USER deployed fake-ecr.aws.com/managed:v649
+                                v496    2023-01-16T04:53:29Z    USER deployed fake-ecr.aws.com/managed:v647
+                                v495    2023-01-16T04:28:01Z    USER deployed fake-ecr.aws.com/managed:v647
+                                v494    2023-01-16T04:00:57Z    USER deployed fake-ecr.aws.com/managed:v646
+                                v493    2023-01-16T03:58:54Z    USER deployed fake-ecr.aws.com/managed:v646
+                            `
+                        })
+                    )
+
+                    receiver.send(slashCommand('/minions', { text: 'env uat deploy v650' }))
+                    await clock.runAllAsync()
+
+                    // mock that the deployment succeeded this time
+                    when(child_process.exec).calledWith(expect.stringContaining('bin/deis releases:list'), expect.anything(), expect.anything()).mockImplementation((_command, _vars, callback) =>
+                        callback(null, {
+                            stdout: `
+                                === managed-uat Releases (6 of 498)
+                                v498    2023-01-17T07:02:50Z    USER deployed fake-ecr.aws.com/managed:v650
+                                v497    2023-01-17T01:55:19Z    USER deployed fake-ecr.aws.com/managed:v649
+                                v496    2023-01-16T04:53:29Z    USER deployed fake-ecr.aws.com/managed:v647
+                                v495    2023-01-16T04:28:01Z    USER deployed fake-ecr.aws.com/managed:v647
+                                v494    2023-01-16T04:00:57Z    USER deployed fake-ecr.aws.com/managed:v646
+                                v493    2023-01-16T03:58:54Z    USER deployed fake-ecr.aws.com/managed:v646
+                            `
+                        })
+                    )
+
+                    await receiver.send(slashCommand('/minions', { text: 'env uat deploy v650' }))
+
+                    // should respond that we're checking if the deployment went through
+                    expect(axios.post).toHaveBeenNthCalledWith(
+                        3,
+                        expect.any(String),
+                        {
+                            blocks: [
+                                {
+                                    text: {
+                                        text: expect.any(String),
+                                        type: "mrkdwn"
+                                    },
+                                    type: "section"
+                                },
+                                {
+                                    text: {
+                                        text: "Confirming version `v650` deployment in `uat` env. Please wait.",
+                                        type: "mrkdwn"
+                                    },
+                                    type: "section"
+                                },
+                                {
+                                    type: "divider"
+                                }
+                            ],
+                            response_type: "in_channel"
+                        }
+                    )
+
+                    // should send out failure message after checking in releases
+                    expect(axios.post).toHaveBeenNthCalledWith(
+                        4,
+                        expect.any(String),
+                        {
+                            blocks: [
+                                {
+                                    text: {
+                                        text: expect.any(String),
+                                        type: "mrkdwn"
+                                    },
+                                    type: "section"
+                                },
+                                {
+                                    text: {
+                                        text: "Deployment failed for `uat` env , version `v650`.",
+                                        type: "mrkdwn"
+                                    },
+                                    type: "section"
+                                },
+                                {
+                                    type: "divider"
+                                }
+                            ],
+                            response_type: "in_channel"
+                        }
+                    )
+
+                    // the 2nd deployment attempt
+                    expect(axios.post).toHaveBeenNthCalledWith(
+                        6, // 5th is the command echo
+                        expect.any(String),
+                        {
+                            blocks: [
+                                {
+                                    text: {
+                                        text: expect.any(String),
+                                        type: "mrkdwn"
+                                    },
+                                    type: "section"
+                                },
+                                {
+                                    text: {
+                                        text: "Beginning deployment for `uat` env, version `v650`. ETA ~7m.",
+                                        type: "mrkdwn"
+                                    },
+                                    type: "section"
+                                },
+                                {
+                                    type: "divider"
+                                }
+                            ],
+                            response_type: "in_channel"
+                        }
+                    )
+
+                    expect(axios.post).toHaveBeenLastCalledWith(
+                        expect.any(String),
+                        {
+                            blocks: [
+                                {
+                                    text: {
+                                        text: expect.any(String),
+                                        type: "mrkdwn"
+                                    },
+                                    type: "section"
+                                },
+                                {
+                                    text: {
+                                        text: "Deployment complete for `uat` env , version `v650`.",
+                                        type: "mrkdwn"
+                                    },
+                                    type: "section"
+                                },
+                                {
+                                    type: "divider"
+                                }
+                            ],
+                            response_type: "in_channel"
+                        }
+                    )
+                })
             })
         })
     })
