@@ -21,7 +21,7 @@ model DeploymentAudit {
   slackChannel      String
   slackUser         String
   version           String
-  hash              String
+  hash              String?
   status            String
   statusDescription String?
   createdAt         DateTime @default(now())
