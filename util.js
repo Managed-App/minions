@@ -1,20 +1,19 @@
+const stripAnsi = (raw) =>
+  raw.replace(
+    /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
+    ''
+  )
 
+const wrapMarkdownCode = (raw) => '```' + raw + '```'
 
-function stripAnsi(raw) {
-    return raw.replace(
-        /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
-}
+const wait = (ms) =>
+  new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(ms)
+    }, ms)
+  })
 
-function wrapMarkdownCode(raw) {
-    return "```" + raw + "```";
-}
+const promiseWrapper = (promise) =>
+  Promise.allSettled([promise]).then(([{ value, reason }]) => [value, reason])
 
-function wait(ms) {
-    return new Promise((resolve, reject) => {
-        setTimeout(() => {
-            resolve(ms);
-        }, ms )
-    })
-}
-
-module.exports = {wait, stripAnsi, wrapMarkdownCode};
+module.exports = { wait, stripAnsi, wrapMarkdownCode, promiseWrapper }
