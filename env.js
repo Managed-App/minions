@@ -1,125 +1,301 @@
-const {exec} = require("child_process");
+const { exec } = require('child_process')
 const util = require('util')
-const { wait } = require("./util");
-const { attemptDeployToEnv, checkVersionFromReleasesForAPeriod, runDeisReleasesList } = require('./helpers')
-const { ConcurrentDeploymentError, DeploymentIncompleteError } = require('./errors');
-const {blockify, blockifyForChannel} = require("./minions");
-const {Help} = require("./help");
-const uatAdminLink = "https://managed-uat.man.redant.com.au/admin";
-const prodAdminLink = "https://go.managedapp.com.au/admin"
+
+const { prisma } = require('./prisma')
+const { DEPLOYMENT_STATUS } = require('./constants')
+
+const { wait, promiseWrapper } = require('./util')
+const {
+  checkVersionFromReleasesForAPeriod,
+  runDeisReleasesList,
+} = require('./helpers')
+const {
+  ConcurrentDeploymentError,
+  DeploymentIncompleteError,
+  CommandError,
+} = require('./errors')
+
+const { blockify, blockifyForChannel } = require('./minions')
+const { Help } = require('./help')
+const { runSkipperListImages } = require('./images')
+
+const uatAdminLink = 'https://managed-uat.man.redant.com.au/admin'
+const prodAdminLink = 'https://go.managedapp.com.au/admin'
 
 const execPromise = util.promisify(exec)
 
 async function Env(client, command, ack, respond, log) {
-    var cs = command.text.split(" ")
-    await ack();
-    if (cs.length == 2) {
-        var target = cs[1];
+  const cs = command.text.split(' ')
+  const [_env, target, ...other] = cs
 
-        if (target && (target === "uat" || target === "prod")) {
-            var result = await runDeisReleasesList(target, log);
+  await ack()
+  // env name
+  if (cs.length == 2) {
+    if (target && (target === 'uat' || target === 'prod')) {
+      const result = await runDeisReleasesList(target, log)
 
-            await respond(blockifyForChannel(`Managed env \`${target}\` (${target=='uat'?uatAdminLink:prodAdminLink}) running version \`${result}\``));
-            log.info(`'/minions ${command.text}' command executed for ${command.user_name} in channel ${command.channel_name}`);
-            return result;
-        } else {
-            log.warn(`'/minions ${command.text}' command failed for ${command.user_name} in channel ${command.channel_name}`);
-            await respond(blockifyForChannel(`'/minions ${command.text}' invalid, try 'uat' | 'prod' for env`));
-        }
-    } else if (cs.length == 4) {
-        const target = cs[1];
-        const action = cs[2];
-        if (action !== "deploy") {
-            await Help(command, ack, respond, log);
-            return;
-        }
-        const version = cs[3];
+      const deploymentAudit = await prisma.deploymentAudit.findFirst({
+        where: {
+          environment: target,
+          version: result,
+          status: DEPLOYMENT_STATUS.SUCCESS,
+        },
+      })
 
-        await attemptDeployToEnv(target, command.user_name, command.user_id, async () =>
-            respond(blockifyForChannel(`Beginning deployment for \`${target}\` env, version \`${version}\`. ETA ~7m.`))
-                .then(() => runSkipperDeploy(target, version, respond, log))
-                .then(() => log.info(`'/minions ${command.text}' command executed for ${command.user_name} in channel ${command.channel_name}`))
-                .catch(async error => {
-                    // Catch error from socket timeout from the Skipper gem. Check if deployment still went through
-                    if (
-                        error.message.includes('Net::ReadTimeout') ||
-                        error.message.includes('Command failed') ||
-                        error.message.includes('An unexpected error occurred')
-                    ) {
-                        await respond(blockifyForChannel(`Confirming version \`${version}\` deployment in \`${target}\` env. Please wait.`))
-                        return checkVersionFromReleasesForAPeriod(version, target, 600000, log)
-                                .then(async ({ isReleased }) =>
-                                    await respond(blockifyForChannel(`Deployment ${isReleased ? 'complete' : 'failed'} for \`${target}\` env , version \`${version}\`.`))
-                                )
-                    }
-                })
+      let auditMessage = ''
+
+      if (deploymentAudit) {
+        const deploymentDate = new Date(deploymentAudit.createdAt).toString()
+        auditMessage = `deployed by \`${deploymentAudit.slackUser}\` on ${deploymentDate}`
+      }
+
+      await respond(
+        blockifyForChannel(
+          `Managed env \`${target}\` (${
+            target == 'uat' ? uatAdminLink : prodAdminLink
+          }) running version \`${result}\` ${auditMessage}`
         )
-        .catch(async error => {
-            if (error instanceof ConcurrentDeploymentError) {
-                messageCurrentDeployerAboutAttemptedDeployment(client, target, command.user_name)
-                respond(blockifyForChannel(error.message))
-            } else if (error instanceof DeploymentIncompleteError) {
-                respond(blockifyForChannel(error.message))
-            } else {
-                respond(blockifyForChannel('An unexpected error occurred.'))
-                log.error(error)
-            }
-        })
+      )
+      log.info(
+        `'/minions ${command.text}' command executed for ${command.user_name} in channel ${command.channel_name}`
+      )
+      return result
     } else {
-        await Help(command, ack, respond, log);
+      log.warn(
+        `'/minions ${command.text}' command failed for ${command.user_name} in channel ${command.channel_name}`
+      )
+      await respond(
+        blockifyForChannel(
+          `'/minions ${command.text}' invalid, try 'uat' | 'prod' for env`
+        )
+      )
     }
-}
+    //  env name deploy v001
+  } else if (cs.length == 4) {
+    const [action, version] = other
 
-const messageCurrentDeployerAboutAttemptedDeployment = async (client, envName, attemptedDeployerName) => {
-    return client.chat.postMessage({
-        token: process.env.SLACK_BOT_TOKEN,
-        channel: global.deploymentState[envName]['actor']['id'],
-        blocks: blockify(`blocked ${attemptedDeployerName} from deploying to ${envName} while job is in progress.`)
-    })
-}
+    if (action !== 'deploy') {
+      await Help(command, ack, respond, log)
+      return
+    }
 
-async function runSkipperDeploy(target, version, respond, log) {
-    return new Promise((resolve, reject) => {
-        const command = `${process.env.RUBY_HOME}/ruby bin/skipper deploy managed:${version} --group managed-${target}`;
-        execPromise(command, {
-            env: {
-                ...process.env,
-                PATH: process.env.RUBY_PATH + ":" + process.env.PATH,
-                RUBY_PATH: process.env.RUBY_PATH,
-                GEM_PATH: process.env.GEM_PATH,
-                GEM_HOME: process.env.GEM_HOME,
-                RUBY_VERSION: "ruby-2.6.4",
-            },
-            cwd: `${process.env.MANAGED_HOME}`,
+    // Catch Current Deployer AboutAttempted Deployment
+    if (global.isEnvironmentBusy(target)) {
+      messageCurrentDeployerAboutAttemptedDeployment(
+        client,
+        target,
+        command.user_name
+      )
+      return await respond(
+        blockifyForChannel(
+          `Env \`${target}\` deployment triggered by \`${global.deploymentState[target]['actor']['userName']}\` is in progress, please try again later.`
+        )
+      )
+    }
+
+    global.setCurrentDeployment(target, command.user_id, command.user_name)
+
+    // run skipper deploy
+    const [skipperDeploy, skipperDeployError] = await promiseWrapper(
+      runSkipperDeploy(target, version, respond, log)
+    )
+
+    // handle runSkipperDeploy error
+    if (skipperDeployError) {
+      // skipper timeouts
+      if (
+        skipperDeployError.message.includes('Net::ReadTimeout') ||
+        skipperDeployError.message.includes('Command failed') ||
+        skipperDeployError.message.includes('An unexpected error occurred')
+      ) {
+        await respond(
+          blockifyForChannel(
+            `Confirming version \`${version}\` deployment in \`${target}\` env. Please wait.`
+          )
+        )
+        // retry
+        return checkVersionFromReleasesForAPeriod(
+          version,
+          target,
+          600000,
+          log
+        ).then(async ({ isReleased }) => {
+          await createDeploymentLog(target, version, {
+            ...command,
+            status: isReleased
+              ? DEPLOYMENT_STATUS.SUCCESS
+              : DEPLOYMENT_STATUS.FAILED,
+          })
+
+          global.unsetCurrentDeployment(target)
+
+          return await respond(
+            blockifyForChannel(
+              `Deployment ${
+                isReleased ? 'complete' : 'failed'
+              } for \`${target}\` env , version \`${version}\`.`
+            )
+          )
         })
-            .then(resp => log.debug(`os executed ${command} stdout: ${resp.stdout}`))
-            .then(async () => {
-                let isSuccess = false;
-                for (let i = 0; i < 100; i++) {
-                    const deployedVersion = await runDeisReleasesList(target, log);
-                    if (deployedVersion === version) {
-                        isSuccess = true;
-                        break;
-                    }
-                    await wait(3000);
-                }
+      }
 
-                return isSuccess
-            })
-            .then(async isSuccess => {
-                log.info(`Deployment for ${target}, version ${version} is ${isSuccess ? 'complete' : 'incomplete'}`)
+      let statusDescription = null
 
-                if (isSuccess) {
-                    await respond(blockifyForChannel(`Deployment complete for \`${target}\` env , version \`${version}\`.`))
-                } else {
-                    throw new DeploymentIncompleteError(`Uh oh, deployment incomplete for \`${target}\` env , version \`${version}\`. Check results with \`/minions env\``)
-                }
+      if (skipperDeployError instanceof DeploymentIncompleteError) {
+        statusDescription = 'Deployment Incomplete Error'
+        await respond(blockifyForChannel(skipperDeployError.message))
+      } else if (skipperDeployError instanceof CommandError) {
+        statusDescription = 'Command Error'
+        await respond(blockifyForChannel(skipperDeployError.message))
+      } else {
+        statusDescription = 'Unexpected Error'
+        await respond(blockifyForChannel('An unexpected error occurred.'))
+        log.error(skipperDeployError)
+      }
 
-                return isSuccess
-            })
-            .then(resolve)
-            .catch(reject)
+      await createDeploymentLog(target, version, {
+        ...command,
+        status: DEPLOYMENT_STATUS.FAILED,
+        statusDescription,
+      })
+
+      global.unsetCurrentDeployment(target)
+
+      return
+    }
+
+    // run skipper success
+    await createDeploymentLog(target, version, {
+      ...command,
+      status: DEPLOYMENT_STATUS.SUCCESS,
     })
+
+    log.info(
+      `'/minions ${command.text}' command executed for ${command.user_name} in channel ${command.channel_name}`
+    )
+
+    global.unsetCurrentDeployment(target)
+  } else {
+    await Help(command, ack, respond, log)
+  }
 }
 
-module.exports = {Env};
+const messageCurrentDeployerAboutAttemptedDeployment = async (
+  client,
+  envName,
+  attemptedDeployerName
+) => {
+  return client.chat.postMessage({
+    token: process.env.SLACK_BOT_TOKEN,
+    channel: global.deploymentState[envName]['actor']['id'],
+    blocks: blockify(
+      `blocked ${attemptedDeployerName} from deploying to ${envName} while job is in progress.`
+    ),
+  })
+}
+
+const runSkipperDeploy = (target, version, respond, log) => {
+  return new Promise(async (resolve, reject) => {
+    const command = `${process.env.RUBY_HOME}/ruby bin/skipper deploy managed:${version} --group managed-${target}`
+
+    const [skipperDeploy, skipperDeployError] = await promiseWrapper(
+      execPromise(command, {
+        env: {
+          ...process.env,
+          PATH: process.env.RUBY_PATH + ':' + process.env.PATH,
+          RUBY_PATH: process.env.RUBY_PATH,
+          GEM_PATH: process.env.GEM_PATH,
+          GEM_HOME: process.env.GEM_HOME,
+          RUBY_VERSION: 'ruby-2.6.4',
+        },
+        cwd: `${process.env.MANAGED_HOME}`,
+      })
+    )
+
+    if (version.charAt(0) !== 'v') {
+      return reject(
+        new CommandError(
+          `Incorrect version format \`${version}\`. Do you mean version \`v${version}?\``
+        )
+      )
+    }
+
+    await respond(
+      blockifyForChannel(
+        `Beginning deployment for \`${target}\` env, version \`${version}\`. ETA ~7m.`
+      )
+    )
+    // test reject
+    // return reject(new Error('Net::ReadTimeout'))
+    // return reject(new Error('Command failed'))
+    // return reject(new Error('An unexpected error occurred'))
+
+    if (skipperDeployError) {
+      reject(skipperDeployError)
+    }
+
+    log.debug(`os executed ${command} stdout: ${skipperDeploy.stdout}`)
+
+    let isSuccess = false
+
+    for (let i = 0; i < 100; i++) {
+      const deployedVersion = await runDeisReleasesList(target, log)
+      if (deployedVersion === version) {
+        isSuccess = true
+        break
+      }
+
+      await wait(3000)
+    }
+
+    log.info(
+      `Deployment for ${target}, version ${version} is ${
+        isSuccess ? 'complete' : 'incomplete'
+      }`
+    )
+
+    if (isSuccess) {
+      await respond(
+        blockifyForChannel(
+          `Deployment complete for \`${target}\` env , version \`${version}\`.`
+        )
+      )
+      return resolve(isSuccess)
+    } else {
+      return reject(
+        new DeploymentIncompleteError(
+          `Uh oh, deployment incomplete for \`${target}\` env , version \`${version}\`. Check results with \`/minions env ${target}\``
+        )
+      )
+    }
+  })
+}
+
+const createDeploymentLog = async (target, version, params) => {
+  const data = {
+    environment: target,
+    slackChannel: params.channel_name,
+    slackUser: params.user_name,
+    status: params.status,
+    statusDescription: params.statusDescription || null,
+    version,
+  }
+
+  if (params.status === DEPLOYMENT_STATUS.SUCCESS) {
+    const images = await runSkipperListImages()
+    const image = images
+      .map((imgString) => ({
+        hash: imgString.split(' ')[0],
+        version: imgString.split(' ')[1],
+      }))
+      .find((obj) => obj.version === version)
+
+    data.hash = image.hash
+  }
+
+  await prisma.deploymentAudit.create({
+    data,
+  })
+}
+
+module.exports = { Env }
