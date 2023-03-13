@@ -3,17 +3,13 @@ const util = require('util')
 
 const { prisma } = require('./prisma')
 const { DEPLOYMENT_STATUS } = require('./constants')
-
 const { wait, promiseWrapper } = require('./util')
 const {
   checkVersionFromReleasesForAPeriod,
   runDeisReleasesList,
+  getSlackTeamInfo,
 } = require('./helpers')
-const {
-  ConcurrentDeploymentError,
-  DeploymentIncompleteError,
-  CommandError,
-} = require('./errors')
+const { DeploymentIncompleteError, CommandError } = require('./errors')
 
 const { blockify, blockifyForChannel } = require('./minions')
 const { Help } = require('./help')
@@ -40,6 +36,9 @@ async function Env(client, command, ack, respond, log) {
           version: result,
           status: DEPLOYMENT_STATUS.SUCCESS,
         },
+        orderBy: {
+          createdAt: 'desc',
+        },
       })
 
       let auditMessage = ''
@@ -56,9 +55,11 @@ async function Env(client, command, ack, respond, log) {
           }) running version \`${result}\` ${auditMessage}`
         )
       )
+
       log.info(
         `'/minions ${command.text}' command executed for ${command.user_name} in channel ${command.channel_name}`
       )
+
       return result
     } else {
       log.warn(
@@ -120,12 +121,18 @@ async function Env(client, command, ack, respond, log) {
           600000,
           log
         ).then(async ({ isReleased }) => {
-          await createDeploymentLog(target, version, {
-            ...command,
-            status: isReleased
-              ? DEPLOYMENT_STATUS.SUCCESS
-              : DEPLOYMENT_STATUS.FAILED,
-          })
+          await createDeploymentLog(
+            client,
+            {
+              ...command,
+              target,
+              version,
+              status: isReleased
+                ? DEPLOYMENT_STATUS.SUCCESS
+                : DEPLOYMENT_STATUS.FAILED,
+            },
+            log
+          )
 
           return await respond(
             blockifyForChannel(
@@ -151,20 +158,32 @@ async function Env(client, command, ack, respond, log) {
         log.error(skipperDeployError)
       }
 
-      await createDeploymentLog(target, version, {
-        ...command,
-        status: DEPLOYMENT_STATUS.FAILED,
-        statusDescription,
-      })
+      await createDeploymentLog(
+        client,
+        {
+          ...command,
+          target,
+          version,
+          status: DEPLOYMENT_STATUS.FAILED,
+          statusDescription,
+        },
+        log
+      )
 
       return
     }
 
     // run skipper success
-    await createDeploymentLog(target, version, {
-      ...command,
-      status: DEPLOYMENT_STATUS.SUCCESS,
-    })
+    await createDeploymentLog(
+      client,
+      {
+        ...command,
+        target,
+        version,
+        status: DEPLOYMENT_STATUS.SUCCESS,
+      },
+      log
+    )
 
     log.info(
       `'/minions ${command.text}' command executed for ${command.user_name} in channel ${command.channel_name}`
@@ -265,18 +284,30 @@ const runSkipperDeploy = (target, version, respond, log) => {
   })
 }
 
-const createDeploymentLog = async (target, version, params) => {
+const createDeploymentLog = async (client, params, log) => {
+  const {
+    team_domain,
+    channel_name,
+    user_name,
+    target,
+    version,
+    status,
+    statusDescription,
+  } = params
+
+  const slackInstance = await getSlackTeamInfo(client, team_domain)
   const data = {
     environment: target,
-    slackChannel: params.channel_name,
-    slackUser: params.user_name,
-    status: params.status,
-    statusDescription: params.statusDescription || null,
     version,
+    status,
+    statusDescription: statusDescription || null,
+    slackChannel: channel_name,
+    slackUser: user_name,
+    slackInstance,
   }
 
-  if (params.status === DEPLOYMENT_STATUS.SUCCESS) {
-    const images = await runSkipperListImages()
+  if (status === DEPLOYMENT_STATUS.SUCCESS) {
+    const images = await runSkipperListImages(log)
     const image = images
       .map((imgString) => ({
         hash: imgString.split(' ')[0],

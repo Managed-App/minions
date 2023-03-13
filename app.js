@@ -1,6 +1,7 @@
 const { App, LogLevel } = require('@slack/bolt')
 
 const { prisma } = require('./prisma')
+const { getSlackTeamInfo } = require('./helpers')
 
 const { Tag } = require('./tag.js')
 const { Env } = require('./env.js')
@@ -30,13 +31,16 @@ const createMinionsApp = (receiver) => {
       blockifyForChannel(`\`/minions ${command.text}\` [${command.user_name}]`)
     )
 
+    const slackInstance = await getSlackTeamInfo(client, command.team_domain)
+
     var stem = command.text.split(' ')[0]
 
     await prisma.commandAudit.create({
       data: {
-        command: command.text,
+        command: command.text || 'help',
         slackChannel: command.channel_name,
         slackUser: command.user_name,
+        slackInstance,
       },
     })
 
