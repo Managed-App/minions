@@ -127,8 +127,6 @@ async function Env(client, command, ack, respond, log) {
               : DEPLOYMENT_STATUS.FAILED,
           })
 
-          global.unsetCurrentDeployment(target)
-
           return await respond(
             blockifyForChannel(
               `Deployment ${
@@ -159,8 +157,6 @@ async function Env(client, command, ack, respond, log) {
         statusDescription,
       })
 
-      global.unsetCurrentDeployment(target)
-
       return
     }
 
@@ -173,8 +169,6 @@ async function Env(client, command, ack, respond, log) {
     log.info(
       `'/minions ${command.text}' command executed for ${command.user_name} in channel ${command.channel_name}`
     )
-
-    global.unsetCurrentDeployment(target)
   } else {
     await Help(command, ack, respond, log)
   }
@@ -292,6 +286,8 @@ const createDeploymentLog = async (target, version, params) => {
 
     data.hash = image.hash
   }
+
+  global.unsetCurrentDeployment(target)
 
   await prisma.deploymentAudit.create({
     data,
