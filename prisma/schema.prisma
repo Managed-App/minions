@@ -8,11 +8,12 @@ datasource db {
 }
 
 model CommandAudit {
-  id           Int      @id @default(autoincrement())
-  command      String
-  slackChannel String
-  slackUser    String
-  createdAt    DateTime @default(now())
+  id            Int      @id @default(autoincrement())
+  command       String
+  slackChannel  String
+  slackUser     String
+  slackInstance String
+  createdAt     DateTime @default(now())
 }
 
 model DeploymentAudit {
@@ -20,6 +21,7 @@ model DeploymentAudit {
   environment       String
   slackChannel      String
   slackUser         String
+  slackInstance     String
   version           String
   hash              String?
   status            String
